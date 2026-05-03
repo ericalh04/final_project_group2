@@ -26,7 +26,7 @@
   <body>
     <header class="page-hero">
       <div class="container py-5">
-        <h1 class="display-5 mb-2 hero-title">Visualizing Virus and Their Vaccines</h1>
+        <h1 class="display-5 mb-2 hero-title">Visualizing Viruses and Their Vaccines</h1>
         <p class="lead hero-subtitle mb-0">Zoey Tsai, Maxine Hsu, Erica Honadel</p>
         <p class="hero-subtitle mb-0">Group 2</p>
       </div>
@@ -36,18 +36,26 @@
       <section class="story-section">
         <h2 class="story-title">Outbreak Timeline</h2>
         <p class="story-text">
-          This view compares measles vaccination coverage (MCV1) against reported case counts for a selected country over
-          time. Use the country dropdown to switch locations, then drag the brush at the bottom to zoom into a specific date
-          range. Hover anywhere in the chart to inspect the nearest year: the tooltip and highlight markers show the exact
+          This view compares <mark>measles vaccination coverage (MCV1)</mark> against <mark>reported case counts</mark> for a selected country over
+          time. Use the <b>country dropdown</b> to switch locations, then <b>drag the brush at the bottom</b> to zoom into a specific date
+          range. <b>Hover anywhere in the chart</b> to inspect the nearest year: the <b>tooltip</b> and <b>highlight markers</b> show the exact
           coverage level, case count, and whether that year is above or below the herd-immunity threshold.
         </p>
-        <p class="story-text">
-          Cases are shown on a logarithmic scale because outbreaks can vary by orders of magnitude, from small baseline levels
-          to very large spikes. A linear scale would flatten smaller values and hide meaningful changes, while the log scale
-          keeps both low and high periods readable in the same frame. The dashed 95% reference line reflects a commonly used
-          measles herd-immunity benchmark: when coverage drops below this level, population protection weakens and outbreak risk
-          rises, which is why those segments are explicitly highlighted as a danger zone.
-        </p>
+        <details>
+          <summary>Click to see how data is represented on the graph</summary>
+          <div>
+            <div>
+              <p class="story-text">
+                Cases are shown on a logarithmic scale because outbreaks can vary by orders of magnitude, from small baseline levels
+                to very large spikes. A linear scale would flatten smaller values and hide meaningful changes, while the log scale
+                keeps both low and high periods readable in the same frame. The dashed 95% reference line reflects a commonly used
+                measles herd-immunity benchmark: when coverage drops below this level, population protection weakens and outbreak risk
+                rises, which is why those segments are explicitly highlighted as a danger zone.
+              </p>
+            </div>
+          </div>
+        </details>
+        <br>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
           <label class="form-label mb-0 me-1" for="countrySelect">Country</label>
           <select id="countrySelect" class="form-select form-select-sm" style="max-width: 320px"></select>
@@ -65,14 +73,13 @@
       <section class="story-section">
         <h2 class="story-title">Global Outbreak Map</h2>
         <p class="story-text">
-          This map combines two signals for the selected disease and year: country color encodes vaccination coverage, while
-          bubble size encodes reported case counts. Use the disease dropdown to switch between measles, diphtheria/pertussis,
-          and polio, then move the year slider (or press Play) to animate how risk changes over time. Hover a country or bubble
-          to highlight it, inspect exact values in the tooltip, and compare how local coverage and outbreak burden shift across
-          regions.
+          This map combines two signals for the selected disease and year: <b>country color</b> encodes <mark>vaccination coverage</mark>, while
+          <b>bubble size</b> encodes <mark>reported case counts</mark>. Use the <b>disease dropdown</b> to switch between <u>measles</u>, <u>diphtheria/pertussis</u>,
+          and <u>polio</u>, then <b>move the year slider</b> (or <b>press "Play"</b>) to animate how risk changes over time. <b>Hover over a country or bubble</b>
+          to highlight it, inspect exact values in the <b>tooltip</b>, and compare how local coverage and outbreak burden shift across regions.
         </p>
         <p class="story-text">
-          Add context here
+          [Add context here]
         </p>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
           <label class="form-label mb-0 me-1" for="mapDisease">Disease</label>
