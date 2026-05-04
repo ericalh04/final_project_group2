@@ -26,13 +26,71 @@
   <body>
     <header class="page-hero">
       <div class="container py-5">
-        <h1 class="display-5 mb-2 hero-title">Visualizing Viruses and Their Vaccines</h1>
-        <p class="lead hero-subtitle mb-0">Zoey Tsai, Maxine Hsu, Erica Honadel</p>
-        <p class="hero-subtitle mb-0">Group 2</p>
+        <h1 class="display-5 mb-2 hero-title">Visualizing Viruses* and Their Vaccines</h1>
+        <p class="lead hero-subtitle mb-0">GROUP 2: Zoey Tsai, Maxine Hsu, Erica Honadel</p>
+        <!-- <p class="hero-subtitle mb-0">Group 2</p> -->
+        <small class="hero-subtitle">
+          <i>*We understand that diphtheria/pertussis are caused by bacteria; however, for the 
+          sake of alliteration and a catchy name, we have decided to maintain the current title.</i>
+        </small>
       </div>
     </header>
 
     <main class="container py-4">
+      <section class="story-section">
+        <h2 class="story-title">INTRO: Why Does This Matter?</h2>
+
+        <h4 class="story-title">What is disease?</h4>
+        <p class="story-text">
+          <mark>Disease</mark> is <b>any harm that is caused to an individual</b>—in this case,
+          humans. <mark><b>Infectious diseases</b></mark> are <b>diseases that can be transmitted
+          from one person to another</b>, whether that is through coughing, sneezing, physical contact,
+          consumption of contaminated food or water, contact with bodily fluids, or a vector
+          (intermediary) like mosquitoes and ticks. Today, we are looking specifically at infectious
+          diseases caused by viruses (and bacteria). Some of the worst viral (and bacterial) diseases are
+          <b><u>measles</u></b>, <b><u>diphtheria</u></b>, <b><u>pertussis</u></b> (also called
+          <b><u>whooping cough</u></b>), and <b><u>polio</u></b>, all of which we will be looking at data for below.
+        </p>
+
+        <h4 class="story-title">What are vaccines?</h4>
+        <p class="story-text">
+          <mark><b>Vaccines</b></mark> are a <b>treatment that gives a weakened form of the virus
+          to a person's immune system, which teaches their immune system how to fight off the virus</b>
+          in case they get the normal (strong) version of the virus in the future. Vaccines are basically
+          the "practice battle" to prepare an army against the "real battle" that may or may not happen.
+          Vaccines <b><i>can be highly effective against viruses</i></b>; in fact, the measles vaccine is estimated
+          to have <b>saved <u>93.71 million</u> lives</b> since it was first introduced<sup>1</sup>.
+        </p>
+        <p class="story-text">
+          Here is a basic history of vaccines:
+        </p>
+        <!-- I will make the timeline visualization here later -->
+
+        <h4 class="story-title">Why is measles so bad?</h4>
+        <p class="story-text">
+          <mark><b>Measles</b></mark> is the <b><u><i>most infectious human disease on Earth</i></u></b>.
+          This is because, <mark>for <u>each person</u> that is infected with measles, an average of <u>12-18 people</u>
+          will be infected</mark> by that one person<sup>2</sup>.
+          <br><br>
+
+          For comparison, for each person infected with...
+          <ul class="story-text">
+            <li><b>COVID-19</b>: <u>2-3 people</u> will be infected on average<sup>3</sup></li>
+            <li><b>Influenza</b>: <u>1-2 people</u> will be infected on average<sup>4</sup></li>
+            <li><b>Ebola</b>: <u>2 people</u> will be infected on average<sup>3</sup></li>
+          </ul>
+          This means that <mark><b>measles is <span style="text-decoration: underline double;">6x</span> as infectious as COVID-19</u></mark>!
+        </p>
+        <!-- I will make the measles spread visualization here later -->
+      </section>
+
+      <section>
+        <h4 class="story-title">What is herd immunity?</h4>
+        <p class="story-text">
+          <mark>Herd immunity</mark> is... The <mark><b>herd immunity threshold</b></mark> is...
+        </p>
+      </section>
+
       <section class="story-section">
         <h2 class="story-title">Outbreak Timeline</h2>
         <p class="story-text">
@@ -78,9 +136,17 @@
           and <u>polio</u>, then <b>move the year slider</b> (or <b>press "Play"</b>) to animate how risk changes over time. <b>Hover over a country or bubble</b>
           to highlight it, inspect exact values in the <b>tooltip</b>, and compare how local coverage and outbreak burden shift across regions.
         </p>
-        <p class="story-text">
-          [Add context here]
-        </p>
+        <details>
+          <summary>Click to see how data is represented on the graph</summary>
+          <div>
+            <div>
+              <p class="story-text">
+                [Add context here]
+              </p>
+            </div>
+          </div>
+        </details>
+        <br>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
           <label class="form-label mb-0 me-1" for="mapDisease">Disease</label>
           <select id="mapDisease" class="form-select form-select-sm" style="max-width: 220px"></select>
