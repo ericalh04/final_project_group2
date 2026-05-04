@@ -103,7 +103,7 @@ const hideTooltip = () => {
 };
 
 const fmtInt = d3.format(",");
-const fmtPct = (v) => (Number.isFinite(v) ? `${d3.format(".1f")(v)}%` : "—");
+const fmtPct = (v) => (Number.isFinite(v) ? `${d3.format(".0f")(v)}%` : "—");
 
 // -----------------------------
 // Data loading

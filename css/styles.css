@@ -19,6 +19,8 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  text-align: justify;
+  text-underline-offset: 24%;
 }
 
 /* Bootstrap helper colors (match light theme) */
@@ -235,6 +237,14 @@ body {
 
 .glow-red {
   filter: drop-shadow(0 0 10px rgba(255, 65, 54, 0.22));
+}
+
+h4 {
+  padding: 1rem 0 0 0;
+}
+
+small {
+  font-size: 12px;
 }
 
 /* everything below is adapted from https://linkedlist.ch/animate_details_element_60/ */
