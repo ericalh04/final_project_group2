@@ -60,7 +60,7 @@ if (!tippingMount || !heatmapMount) {
 const THEME = {
   bg: "#111111",
   fg: "#E0E0E0",
-  muted: "rgba(224,224,224,0.72)",
+  muted: "rgba(107, 87, 87, 0.72)",
   cyan: "#2DE2E6",
   teal: "#00D1B2",
   outbreak: "#FF4136",
@@ -1196,11 +1196,12 @@ const renderMeaslesSpread = () => {
     // Name label centred below John's feet
     if (isJohn) {
       g.append("text")
-        .attr("x", x).attr("y", y + 40)
+        .attr("id", "john-label")
+        .attr("x", x).attr("y", y + 20)
         .attr("text-anchor", "middle")
-        .attr("font-size", 11)
+        .attr("font-size", 9)
         .attr("font-family", "Inter, system-ui, sans-serif")
-        .attr("fill", THEME.muted)
+        .attr("fill", "black")
         .text("John");
     }
   };
@@ -1217,6 +1218,7 @@ const renderMeaslesSpread = () => {
     totalInfected = 1;
     generation    = 0;
     elapsed       = 0;
+    currentGenerationSize = 1;
     countEl.textContent = "1";
 
     // Pin John to the grid slot nearest the canvas centre
@@ -1232,16 +1234,24 @@ const renderMeaslesSpread = () => {
    */
   const spread = () => {
     // Stop automatically after MAX_RUNTIME ms
-    if (elapsed >= MAX_RUNTIME) { stop(); return; }
+    if (elapsed >= MAX_RUNTIME) {
+      stop();
+      return;
+    }
 
-    // Random number of new infections in the measles range (12–18)
-    const n = Math.floor(Math.random() * 7) + 12;
+    // Total new infections generated THIS wave
+    let newInfections = 0;
+
+    // Each currently infected person infects 12–18 more
+    for (let i = 0; i < currentGenerationSize; i++) {
+      newInfections += Math.floor(Math.random() * 7) + 12;
+    }
 
     // John's pixel position stays fixed at the canvas centre
     const { x: jx, y: jy } = slotToXY(xyToSlot(W / 2, H / 2));
 
     // Get the nearest free slots, radiating outward from John
-    const slots = getRadialFreeSlots(n, jx, jy);
+    const slots = getRadialFreeSlots(newInfections, jx, jy);
     if (slots.length === 0) { stop(); return; }  // grid is full
 
     // Stagger each person's appearance by 80 ms so the wave ripples visually
@@ -1250,6 +1260,7 @@ const renderMeaslesSpread = () => {
       addPersonToSvg(slot, i * 80, false);
     });
 
+    currentGenerationSize = slots.length;
     totalInfected += slots.length;
     generation++;
     elapsed += WAVE_INTERVAL;
@@ -1279,6 +1290,9 @@ const renderMeaslesSpread = () => {
       btnEl.textContent  = "Stop";
       titleEl.textContent = "Measles spreads to 12–18 people per infected person…";
       subEl.textContent  = "Each wave represents one generation of new infections.";
+      // Hide John's name label after the first click
+      d3.select("#john-label").transition().duration(300).style("opacity", 0);
+
       spread();                                     // first wave immediately
       timer = setInterval(spread, WAVE_INTERVAL);   // then every 4 seconds
 
