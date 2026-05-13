@@ -78,19 +78,43 @@ const measlesSpreadVis = () => {
 
   /**
    * Return up to `n` free (unoccupied) slot indices sorted by distance from
-   * origin (ox, oy), so each new wave radiates outward from John's position.
+   * origin (ox, oy), so each new wave generates clusters spreading out from John.
    */
-  const getRadialFreeSlots = (n, ox, oy) => {
-    const candidates = [];
-    for (let i = 0; i < COLS * ROWS; i++) {
-      if (occupiedSlots.has(i)) continue;
-      const { x, y } = slotToXY(i);
-      candidates.push({ slot: i, dist: Math.hypot(x - ox, y - oy) });
-    }
-    // Nearest-first → wave expands outward like a ripple
-    candidates.sort((a, b) => a.dist - b.dist);
-    return candidates.slice(0, n).map(c => c.slot);
-  };
+    const getClusteredFreeSlots = (n) => {
+      const candidates = [];
+    
+      for (let i = 0; i < COLS * ROWS; i++) {
+        if (occupiedSlots.has(i)) continue;
+    
+        const { x, y } = slotToXY(i);
+    
+        // Find distance to the NEAREST occupied slot
+        let minDist = Infinity;
+    
+        occupiedSlots.forEach(occupiedSlot => {
+          const pos = slotToXY(occupiedSlot);
+        
+          const dist = Math.hypot(
+            x - pos.x,
+            y - pos.y
+          );
+      
+          if (dist < minDist) {
+            minDist = dist;
+          }
+        });
+    
+        candidates.push({
+          slot: i,
+          dist: minDist
+        });
+      }
+  
+      // Closest-to-existing-infection first
+      candidates.sort((a, b) => a.dist - b.dist);
+  
+      return candidates.slice(0, n).map(c => c.slot);
+    };
 
   // ── Drawing helpers ────────────────────────────────────────────────────────
 
@@ -252,8 +276,8 @@ const measlesSpreadVis = () => {
     // John's pixel position stays fixed at the canvas centre
     const { x: jx, y: jy } = slotToXY(xyToSlot(W / 2, H / 2));
 
-    // Get the nearest free slots, radiating outward from John
-    const slots = getRadialFreeSlots(newInfections, jx, jy);
+    // Get the nearest free slots
+    const slots = getClusteredFreeSlots(newInfections);
     if (slots.length === 0) { stop(); return; }  // grid is full
 
     // Stagger each person's appearance by 80 ms so the wave ripples visually
@@ -265,22 +289,36 @@ const measlesSpreadVis = () => {
     currentGenerationSize = slots.length;
     totalInfected += slots.length;
     generation++;
-    elapsed += WAVE_INTERVAL;
+
+    // Calculate how long this specific wave needs to finish appearing.
+    // (Total staggered delay) + (1000ms buffer for the animation to settle)
+    const waveDuration = (slots.length * 80) + 1000; 
+    
+    // Ensure we still wait AT LEAST the original 3 seconds (WAVE_INTERVAL)
+    const timeToNextWave = Math.max(WAVE_INTERVAL, waveDuration);
+
+    elapsed += timeToNextWave;
 
     // Update the narrative text and infected counter
     countEl.textContent    = totalInfected;
     titleEl.textContent    = `Generation ${generation}: ${slots.length} more people infected`;
     subEl.textContent      = `Total infected so far: ${totalInfected}`;
+
+    // Chain the next wave dynamically instead of relying on a fixed interval
+    if (phase === "spreading") {
+      timer = setTimeout(spread, timeToNextWave); 
+    }
+
   };
 
   /**
    * Halt the animation and transition the UI into the "done" state.
    */
   const stop = () => {
-    if (timer) { clearInterval(timer); timer = null; }
+    if (timer) { clearTimeout(timer); timer = null; }
     phase = "done";
     btnEl.textContent   = "Reset";
-    titleEl.textContent = `Outbreak stopped — ${totalInfected} people infected`;
+    titleEl.textContent = `Outcome: — ${totalInfected} people infected`;
     subEl.textContent   = "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
   };
 
@@ -296,7 +334,6 @@ const measlesSpreadVis = () => {
       d3.select("#john-label").transition().duration(300).style("opacity", 0);
 
       spread();                                     // first wave immediately
-      timer = setInterval(spread, WAVE_INTERVAL);   // then every 4 seconds
 
     } else if (phase === "spreading") {
       // ── Stop mid-animation ───────────────────────────────────────────────

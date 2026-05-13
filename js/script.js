@@ -60,7 +60,7 @@ if (!tippingMount || !heatmapMount) {
 const THEME = {
   bg: "#111111",
   fg: "#E0E0E0",
-  muted: "rgba(107, 87, 87, 0.72)",
+  muted: "rgba(114, 105, 105, 0.72)",
   cyan: "#2DE2E6",
   teal: "#00D1B2",
   outbreak: "#FF4136",
