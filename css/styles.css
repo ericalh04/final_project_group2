@@ -57,6 +57,19 @@ body {
   font-size: 0.86rem;
 }
 
+.viz1-story-bar {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.viz1-story-caption {
+  margin-bottom: 0;
+  text-align: left;
+  line-height: 1.55;
+}
+
 .legend-item {
   display: inline-flex;
   align-items: center;
@@ -75,16 +88,30 @@ body {
   border: 1px solid rgba(15, 23, 42, 0.15);
 }
 
-.legend-coverage {
+.legend-line-split {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.legend-line-split .legend-line {
+  width: 12px;
+}
+
+.legend-coverage-below {
   border-top-color: var(--teal);
 }
 
+.legend-coverage-above {
+  border-top-color: #34d399;
+}
+
 .legend-cases {
-  background: rgba(255, 65, 54, 0.32);
+  background: rgba(234, 88, 12, 0.44);
 }
 
 .legend-danger {
-  background: rgba(255, 65, 54, 0.18);
+  background: rgba(124, 58, 237, 0.22);
 }
 
 .legend-threshold,

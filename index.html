@@ -115,9 +115,9 @@
         <h2 class="story-title">Outbreak Timeline</h2>
         <p class="story-text">
           This view compares <mark>measles vaccination coverage (MCV1)</mark> against <mark>reported case counts</mark> for a selected country over
-          time. Use the <b>country dropdown</b> to switch locations, then <b>drag the brush at the bottom</b> to zoom into a specific date
-          range. <b>Hover anywhere in the chart</b> to inspect the nearest year: the <b>tooltip</b> and <b>highlight markers</b> show the exact
-          coverage level, case count, and whether that year is above or below the herd immunity threshold.
+          time. Use the <b>layer toggles</b> below the chart to show vaccination, cases, or both together. Press <b>Start</b> for a guided tour: use <b>Next</b> to advance through each layer view, then <b>Done</b> to finish.
+          Use the <b>country dropdown</b> to switch locations, then <b>drag the brush at the bottom</b> to zoom into a specific date
+          range. <b>Hover anywhere in the chart</b> to inspect the nearest year: the <b>tooltip</b> and <b>highlight markers</b> show values for the layers you have turned on.
         </p>
         <details>
           <summary>Click to see how data is represented on the graph</summary>
@@ -138,10 +138,28 @@
           <span class="small text-body-secondary">Measles (MCV1) — threshold 95%</span>
         </div>
         <div class="viz1-legend mb-2" aria-label="Outbreak timeline legend">
-          <span class="legend-item"><span class="legend-line legend-coverage"></span>Coverage (MCV1)</span>
-          <span class="legend-item"><span class="legend-box legend-cases"></span>Cases (log area)</span>
-          <span class="legend-item"><span class="legend-box legend-danger"></span>Below threshold</span>
+          <span class="legend-item"
+            ><span class="legend-line-split" aria-hidden="true"
+              ><span class="legend-line legend-coverage-below"></span><span class="legend-line legend-coverage-above"></span></span
+            >Coverage (MCV1): teal below 95%, green at/above</span
+          >
+          <span class="legend-item"><span class="legend-box legend-cases"></span>Cases (log area, solid fill)</span>
+          <span class="legend-item"><span class="legend-box legend-danger"></span>Below threshold (violet)</span>
           <span class="legend-item"><span class="legend-line legend-threshold"></span>Herd immunity threshold</span>
+        </div>
+        <div class="viz1-story-bar mb-3">
+          <p id="viz1-story-caption" class="viz1-story-caption story-text mb-3"></p>
+          <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="checkbox" id="viz1-layer-vacc" checked aria-controls="vis-tipping" />
+              <label class="form-check-label" for="viz1-layer-vacc">Vaccination coverage (line, threshold, danger zone)</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="checkbox" id="viz1-layer-cases" checked aria-controls="vis-tipping" />
+              <label class="form-check-label" for="viz1-layer-cases">Measles cases (solid fill, log scale, right axis)</label>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="viz1-walkthrough" aria-label="Start guided tour of chart layers">Start</button>
+          </div>
         </div>
         <div id="vis-tipping" class="vis-container"></div>
       </section>
