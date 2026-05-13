@@ -261,35 +261,24 @@ small {
 }
 
 /* ------------------------------------------------------------------------------------------
-  everything between the horizontal lines is adapted from https://linkedlist.ch/animate_details_element_60/ */
+  everything between the horizontal lines is adapted from https://blog.logrocket.com/styling-html-modern-css/ */
 
-details > div {
+details {
+  interpolate-size: allow-keywords;
+}
+
+/* closed state */
+details::details-content {
+  block-size: 0;
+  transition: content-visibility, block-size;
+  transition-duration: 750ms;
+  transition-behavior: allow-discrete;
   overflow: hidden;
-  display: grid;
-  animation-duration: 0.2s;
 }
 
-details > .animation {
-  animation-name: grid-expand;
-  animation-timing-function: ease-out;
-}
-
-details > .collapsing {
-  animation-direction: reverse;
-  animation-timing-function: ease-in;
-}
-
-details > div > div {
-  min-height: 0;
-}
-
-@keyframes grid-expand {
-  0% {
-    grid-template-rows: 0fr;
-  }
-  100% {
-    grid-template-rows: 1fr;
-  }
+/* open state */
+details[open]::details-content {
+  block-size: auto;
 }
 
 /* ------------------------------------------------------------------------------------------ */
