@@ -23,6 +23,18 @@ body {
   text-underline-offset: 24%;
 }
 
+a:link {
+  color: #ff4136;
+}
+
+a:visited {
+  color: #0ea5e9;
+}
+
+a:hover {
+  color: #14b8a6;
+}
+
 /* Bootstrap helper colors (match light theme) */
 .text-body-secondary {
   color: var(--muted) !important;
@@ -248,7 +260,8 @@ small {
   font-size: 13px;
 }
 
-/* everything below is adapted from https://linkedlist.ch/animate_details_element_60/ */
+/* ------------------------------------------------------------------------------------------
+  everything between the horizontal lines is adapted from https://linkedlist.ch/animate_details_element_60/ */
 
 details > div {
   overflow: hidden;
@@ -278,6 +291,8 @@ details > div > div {
     grid-template-rows: 1fr;
   }
 }
+
+/* ------------------------------------------------------------------------------------------ */
 
 #measles-spread-btn {
   background: gray ;
