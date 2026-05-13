@@ -87,11 +87,13 @@
         <!-- I will make the disease spread visualization here later -->
 
         <div id="vis-measles-spread">
-          <h4 id="measles-spread-title" ...>John gets infected with measles</h4>
-          <p  id="measles-spread-sub"  ...>...</p>
+          <h4 id="measles-spread-title" class="story-title">
+            Example: John gets infected with measles
+          </h4>
+          <p  id="measles-spread-sub"  class="story-text">...</p>
           <button id="measles-spread-btn" ...>Watch what happens next →</button>
           <svg id="measles-spread-svg" ...></svg>
-          <p ...>People infected: <strong id="measles-spread-count">1</strong></p>
+          <p class="visually-hidden">People infected: <strong id="measles-spread-count">1</strong></p>
         </div>
         <h4 class="story-title">What is herd immunity?</h4>
         <p class="story-text">
@@ -205,6 +207,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <!-- TopoJSON (UMD build exposes global `topojson`) -->
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+    <script src="js/measles_spread.js"></script>
     <script src="js/script.js"></script>
 
     <!-- Bootstrap JS (optional) -->
