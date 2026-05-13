@@ -320,7 +320,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
   const innerH = height - margin.top - margin.bottom;
 
   const brushH = 64;
-  const brushGap = 36;
+  const brushGap = 46; // space for x-axis title between main axis and brush
   const brushTop = innerH + brushGap;
 
   const svg = d3
@@ -384,13 +384,13 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .attr("transform", `translate(${innerW},0)`)
     .call(yAxisR);
 
-  // Axis labels
+  // Y-axis titles along plot sides (rotated, centered on chart height)
   g.selectAll("text.yL-label")
     .data([null])
     .join("text")
     .attr("class", "yL-label")
-    .attr("x", 0)
-    .attr("y", -18)
+    .attr("transform", `translate(${-56},${innerH / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
     .attr("fill", THEME.muted)
     .attr("font-size", 12)
     .text("Coverage (MCV1)");
@@ -399,12 +399,22 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .data([null])
     .join("text")
     .attr("class", "yR-label")
-    .attr("x", innerW)
-    .attr("y", -18)
-    .attr("text-anchor", "end")
+    .attr("transform", `translate(${innerW + 56},${innerH / 2}) rotate(90)`)
+    .attr("text-anchor", "middle")
     .attr("fill", THEME.muted)
     .attr("font-size", 12)
     .text("Cases (log)");
+
+  g.selectAll("text.x-axis-label")
+    .data([null])
+    .join("text")
+    .attr("class", "x-axis-label")
+    .attr("x", innerW / 2)
+    .attr("y", innerH + 34)
+    .attr("text-anchor", "middle")
+    .attr("fill", THEME.muted)
+    .attr("font-size", 12)
+    .text("Year");
 
   // Threshold reference line (herd immunity)
   const threshY = yCov(threshold);
