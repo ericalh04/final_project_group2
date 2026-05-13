@@ -70,6 +70,8 @@ const THEME = {
   outbreak: "#FF4136",
   /** Below-threshold vaccination band (distinct from case counts) */
   dangerZoneFill: "rgba(124, 58, 237, 0.22)",
+  /** At/above threshold: fill between coverage curve and 95% line */
+  safeZoneFill: "rgba(52, 211, 153, 0.2)",
   /** Measles case area — warm orange, not the same hue as danger/vacc shading */
   casesAreaFill: "rgba(234, 88, 12, 0.44)",
   /** Hover marker on cases line */
@@ -388,10 +390,10 @@ function updateViz1StoryCaption() {
   const vOn = document.querySelector("#viz1-layer-vacc")?.checked;
   if (cOn && vOn) {
     el.innerHTML =
-      "<b>Full view.</b> MCV1 coverage (left axis, 0–100%): the line is <strong>green</strong> when coverage is at or above the herd immunity threshold and <strong>teal</strong> when it is below. Dashed line: 95% target for measles. <strong>Violet</strong> shading fills the gap between that target and the coverage curve when coverage is under 95%. <strong>Orange</strong> area: reported cases (log scale, right axis). Use the toggles or press <strong>Start</strong> for a guided tour.";
+      "<b>Full view.</b> MCV1 coverage (left axis, 0–100%): the line is <strong>green</strong> when coverage is at or above the herd immunity threshold and <strong>teal</strong> when it is below. Dashed line: 95% target for measles. <strong>Light green</strong> fill sits between the curve and that line when coverage is at or above 95%; <strong>violet</strong> fill does the same when it is under 95%. <strong>Orange</strong> area: reported cases (log scale, right axis). Use the toggles or press <strong>Start</strong> for a guided tour.";
   } else if (vOn && !cOn) {
     el.innerHTML =
-      "<b>Vaccination only.</b> The left axis shows MCV1 (first-dose measles) coverage as a line: <strong>green</strong> when it is at or above the ~<strong>95%</strong> target for measles herd immunity, <strong>teal</strong> when it is lower. The dashed horizontal line is that 95% target. <strong>Violet</strong> shading fills the band between the target and the coverage curve wherever coverage is below 95%. Turn on <strong>Measles cases</strong> to add reported counts on the same timeline.";
+      "<b>Vaccination only.</b> The left axis shows MCV1 (first-dose measles) coverage as a line: <strong>green</strong> when it is at or above the ~<strong>95%</strong> target for measles herd immunity, <strong>teal</strong> when it is lower. The dashed horizontal line is that 95% target. <strong>Light green</strong> fill appears between the curve and the line when coverage meets or beats the target; <strong>violet</strong> fill appears when it falls short. Turn on <strong>Measles cases</strong> to add reported counts on the same timeline.";
   } else if (cOn && !vOn) {
     el.innerHTML =
       "<b>Cases layer only.</b> The orange area shows reported cases (log scale, right axis) so both small counts and large outbreaks stay readable. Turn on <strong>Vaccination coverage</strong> to compare immunization trends with case surges.";
@@ -405,7 +407,7 @@ const VIZ1_WALKTHROUGH_STEPS = [
   {
     vacc: true,
     cases: false,
-    html: "<b>Step 1 of 3 — Vaccination only.</b> MCV1 coverage on the left axis: <strong>green</strong> at or above ~95%, <strong>teal</strong> below. The dashed line is that target; <strong>violet</strong> fills the band between the target and the curve when coverage is under 95%. Press <strong>Next</strong> for the cases layer.",
+    html: "<b>Step 1 of 3 — Vaccination only.</b> MCV1 on the left axis: <strong>green</strong> line at or above ~95%, <strong>teal</strong> below. <strong>Light green</strong> fill between curve and dashed line when coverage is on target; <strong>violet</strong> when it is under. Press <strong>Next</strong> for the cases layer.",
   },
   {
     vacc: false,
@@ -415,7 +417,7 @@ const VIZ1_WALKTHROUGH_STEPS = [
   {
     vacc: true,
     cases: true,
-    html: "<b>Step 3 of 3 — Both layers.</b> Coverage and cases together: <strong>violet</strong> shows under-threshold years; <strong>orange</strong> shows reported cases. Large surges often follow periods where coverage dips under the threshold (though reporting and other factors matter too). Press <strong>Done</strong> to exit the tour.",
+    html: "<b>Step 3 of 3 — Both layers.</b> <strong>Light green</strong> / <strong>violet</strong> bands show on- vs under-target vaccination; <strong>orange</strong> shows reported cases. Large surges often follow dips under the threshold (reporting and other factors matter too). Press <strong>Done</strong> to exit the tour.",
   },
 ];
 
@@ -584,6 +586,14 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
     .y1((d) => yCov(d.coverage))
     .curve(d3.curveCatmullRom.alpha(0.85));
 
+  const areaSafe = d3
+    .area()
+    .defined((d) => Number.isFinite(d.year) && Number.isFinite(d.coverage) && d.coverage >= threshold)
+    .x((d) => x(d.year))
+    .y0((d) => yCov(d.coverage))
+    .y1(threshY)
+    .curve(d3.curveCatmullRom.alpha(0.85));
+
   const plotG = g.selectAll("g.plot").data([null]).join("g").attr("class", "plot");
 
   // Cases area (right axis)
@@ -599,6 +609,20 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
           .attr("opacity", 0.95)
           .attr("d", areaCases),
       (update) => update.transition().duration(800).attr("fill", THEME.casesAreaFill).attr("d", areaCases)
+    );
+
+  // Safe zone: light green fill between coverage curve and herd threshold when coverage >= threshold
+  plotG
+    .selectAll("path.safe-area")
+    .data([series])
+    .join(
+      (enter) =>
+        enter
+          .append("path")
+          .attr("class", "safe-area")
+          .attr("fill", THEME.safeZoneFill)
+          .attr("d", areaSafe),
+      (update) => update.transition().duration(800).attr("fill", THEME.safeZoneFill).attr("d", areaSafe)
     );
 
   // Danger zone (coverage dip)
@@ -692,7 +716,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
     .attr("class", "focus-cov")
     .attr("r", 4.5)
     .attr("fill", THEME.coverageBelow)
-    .attr("stroke", "#ffffff")
+    .attr("stroke", "rgba(15, 23, 42, 0.45)")
     .attr("stroke-width", 1.5);
 
   focusG
@@ -702,7 +726,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
     .attr("class", "focus-cases")
     .attr("r", 4.5)
     .attr("fill", THEME.casesMark)
-    .attr("stroke", "#ffffff")
+    .attr("stroke", "rgba(15, 23, 42, 0.45)")
     .attr("stroke-width", 1.5);
 
   const overlay = plotG
@@ -733,6 +757,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
         .select("circle.focus-cov")
         .attr("display", covValid && showVacc ? null : "none")
         .attr("fill", covValid && d.coverage >= threshold ? THEME.coverageAbove : THEME.coverageBelow)
+        .attr("stroke", covValid && d.coverage >= threshold ? "rgba(6, 95, 70, 0.55)" : "rgba(15, 23, 42, 0.45)")
         .attr("cx", px)
         .attr("cy", covValid ? yCov(d.coverage) : 0);
       focusG
@@ -816,6 +841,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
     });
     plotG.selectAll("path.cov-line-seg").data(coverageSegments(), covSegKey).attr("d", (seg) => lineCoverageSeg(seg.points));
     plotG.select("path.danger-area").interrupt().attr("d", areaDanger(series));
+    plotG.select("path.safe-area").interrupt().attr("d", areaSafe(series));
   };
 
   const brushed = (event) => {
@@ -872,6 +898,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }
   g.select("text.threshold-label").style("opacity", showVacc ? 1 : 0);
   plotG.selectAll("path.cov-line-seg").style("opacity", showVacc ? 1 : 0);
   plotG.select("path.danger-area").style("opacity", showVacc ? 1 : 0);
+  plotG.select("path.safe-area").style("opacity", showVacc ? 1 : 0);
   plotG.select("path.cases-area").style("opacity", showCases ? 1 : 0);
   g.select("g.axis-yR").style("opacity", showCases ? 1 : 0).style("pointer-events", pe(showCases));
   g.select("text.yR-label").style("opacity", showCases ? 1 : 0);
