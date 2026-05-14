@@ -9,11 +9,11 @@ We address the resurgence of multiple vaccine-preventable diseases that is cause
 - “Vaccine-Preventable Diseases.” World Health Organization. Accessed May 3, 2026. https://www.who.int/data/gho/data/themes/topics/indicator-groups/indicator-group-details/GHO/gho-immunization-vaccine-preventable-communicable-diseases.
 
 ## Formatting Key
-- <mark>**Major terms**</mark>
-- **<u>Definitions</u>**
-- **Major information**
-- <mark>Major takeaways</mark>
-- <u>Variables</u>
+- <mark>**Highlighted and bolded**</mark>: Major terms
+- **<ins>Bolded and underlined</ins>**: Definitions
+- **Bolded**: Major information
+- <mark>Highlighted</mark>: Takeaways
+- <ins>Underlined</ins>: Variables
 
 ## Teamwork Breakdown
 - **Zoey** created both measles spread visualizations and edited text to be less verbose and to connect the different visualizations.
