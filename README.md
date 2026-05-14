@@ -1,4 +1,4 @@
-# CMSC471 Final Project
+# CMSC471 Final Project: Visualizing Viruses and Their Vaccines
 ### GROUP 2: Zoey Tsai, Maxine Hsu, Erica Honadel
 
 ## Visualization Problem
@@ -6,11 +6,18 @@ We address the resurgence of multiple vaccine-preventable diseases that is cause
 
 ## Datasets
 - “Immunization Coverage Estimates.” World Health Organization. Accessed May 3, 2026. https://www.who.int/data/gho/data/themes/topics/indicator-groups/indicator-group-details/GHO/immunization-coverage-estimates. 
-- “Vaccine-Preventable Diseases.” World Health Organization. Accessed May 3, 2026. https://www.who.int/data/gho/data/themes/topics/indicator-groups/indicator-group-details/GHO/gho-immunization-vaccine-preventable-communicable-diseases. 
+- “Vaccine-Preventable Diseases.” World Health Organization. Accessed May 3, 2026. https://www.who.int/data/gho/data/themes/topics/indicator-groups/indicator-group-details/GHO/gho-immunization-vaccine-preventable-communicable-diseases.
+
+## Formatting Key
+- <mark>**Major terms**</mark>
+- **<u>Definitions</u>**
+- **Major information**
+- <mark>Major takeaways</mark>
+- <u>Variables</u>
 
 ## Teamwork Breakdown
-- **Zoey** created the measles spread visualization and edited the text on the webpage to be less verbose and to connect the different visualizations.
-- **Maxine** wrote the "Why Does This Matter?" section and edited the formatting of all text on the webpage to be more consistent with one another and to highlight important terms or key information.
+- **Zoey** created both measles spread visualizations and edited text to be less verbose and to connect the different visualizations.
+- **Maxine** wrote the "Why Does This Matter?" section, animated the opening and closing of the disclosure widgets, edited text formatting to improve visual clarity and consistency, and emphasized key terms and information.
 - **Erica** created the "Outbreak Timeline" and "Global Outbreak Map" visualizations.
 
 ## Bibliography
