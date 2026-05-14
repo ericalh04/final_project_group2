@@ -81,10 +81,6 @@
             <li><b>Influenza</b>: <u>1-2 people</u> will be infected on average<sup>4</sup></li>
             <li><b>Ebola</b>: <u>2 people</u> will be infected on average<sup>3</sup></li>
           </ul>
-          <span class="story-text">
-            This means that <mark>measles is <span style="text-decoration: underline double;">6x</span>
-            as infectious as COVID-19</mark>!
-          </span>
         </p>
         <div id="vis-measles-spread">
           <h4 id="measles-spread-title" class="story-title">
@@ -98,17 +94,17 @@
 
         <h4 class="story-title">What is herd immunity?</h4>
         <p class="story-text">
-          <mark>Herd immunity</mark> is <b>when the population has enough immunity to a disease
+          <b>Herd immunity</b> is when the <b>population has enough immunity to a disease
           that the risk of disease spread is low</b>. Herd immunity can be acquired through vaccination
           or through enough people getting sick with the disease and successfully fighting it off, granting
-          them natural immunity (which is similar to what vaccines provide). The <mark><b>herd immunity threshold</b></mark>
-          is <b>the point where, if the percentage of people vaccinated drops below it, <u>herd immunity weakens</u>
-          and <u>the risk of a disease outbreak rises</u></b>. This is why those segments are explicitly highlighted as a danger zone below.
+          them natural immunity (which is similar to what vaccines provide). The <b>herd immunity threshold</b>
+          is the point where, if the percentage of people vaccinated drops below it, <b>herd immunity weakens</b>
+          and <b>the risk of a disease outbreak rises</b>. This is why those segments are explicitly highlighted as a danger zone below.
           <br><br>
 
-          Each disease has a different herd immunity threshold, depending on their infectivity. <mark>Measles</mark> has a
-          <i>very high herd immunity threshold of 95%</i>, meaning that <mark><u>at least 95% of the population should be
-          vaccinated against it</u> to prevent an outbreak</mark>.
+          Each disease has a different herd immunity threshold, depending on their infectivity. Measles has a
+          <mark>very high herd immunity threshold of 95%</mark>, meaning that <mark>at least 95% of the population should be
+          vaccinated against it</mark> to prevent an outbreak</mark>.
         </p>
       </section>
 
@@ -149,10 +145,29 @@
           <span class="small text-body-secondary">Measles (MCV1) — threshold 95%</span>
         </div>
         <div class="viz1-legend mb-2" aria-label="Outbreak timeline legend">
-          <span class="legend-item"><span class="legend-line legend-coverage"></span>Coverage (MCV1)</span>
-          <span class="legend-item"><span class="legend-box legend-cases"></span>Cases (log area)</span>
-          <span class="legend-item"><span class="legend-box legend-danger"></span>Below threshold</span>
+          <span class="legend-item"
+            ><span class="legend-line-split" aria-hidden="true"
+              ><span class="legend-line legend-coverage-below"></span><span class="legend-line legend-coverage-above"></span></span
+            >Coverage (MCV1): teal below 95%, green at/above</span
+          >
+          <span class="legend-item"><span class="legend-box legend-cases"></span>Cases (log area, solid fill)</span>
+          <span class="legend-item"><span class="legend-box legend-safe"></span>At/above threshold (green tint)</span>
+          <span class="legend-item"><span class="legend-box legend-danger"></span>Below threshold (violet)</span>
           <span class="legend-item"><span class="legend-line legend-threshold"></span>Herd immunity threshold</span>
+        </div>
+        <div class="viz1-story-bar mb-3">
+          <p id="viz1-story-caption" class="viz1-story-caption story-text mb-3"></p>
+          <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="checkbox" id="viz1-layer-vacc" checked aria-controls="vis-tipping" />
+              <label class="form-check-label" for="viz1-layer-vacc">Vaccination coverage (line, threshold, danger zone)</label>
+            </div>
+            <div class="form-check form-check-inline mb-0">
+              <input class="form-check-input" type="checkbox" id="viz1-layer-cases" checked aria-controls="vis-tipping" />
+              <label class="form-check-label" for="viz1-layer-cases">Measles cases (solid fill, log scale, right axis)</label>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="viz1-walkthrough" aria-label="Start guided tour of chart layers">Start</button>
+          </div>
         </div>
         <div id="vis-tipping" class="vis-container"></div>
       </section>

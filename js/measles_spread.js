@@ -1,363 +1,487 @@
+/**
+ * Measles spread visualization (D3)
+ *
+ * Shows “John” at the centre of an SVG grid; each wave adds new stick figures
+ * in slots closest to existing infections. Others turn fully red after a delay;
+ * John keeps a red infection disc on the chest. Each generation’s figures finish fading in over a fixed
+ * duration; larger waves use a shorter stagger between individuals. If the grid runs out of empty
+ * cells, the SVG grows downward and new rows are filled. Spreading runs for a fixed
+ * number of waves (see `maxWaves`) or until the user clicks Stop.
+ * Wired from
+ * index.html; bootstrapped via `measlesSpreadVis()`
+ * from script.js after the DOM exists.
+ *
+ * Expected markup (inside #vis-measles-spread):
+ *   #measles-spread-svg, #measles-spread-title, #measles-spread-sub,
+ *   #measles-spread-btn, #measles-spread-count
+ */
+
+// -----------------------------------------------------------------------------
+// Configuration — layout, timing, and DOM selectors (single source of truth)
+// -----------------------------------------------------------------------------
+
+const MEASLES_SPREAD = Object.freeze({
+  // SVG coordinate space (matches viewBox)
+  width: 660,
+  height: 380,
+  // Stick-figure scale and grid cell size (px)
+  figureScale: 0.4,
+  cellWidth: 20,
+  cellHeight: 30,
+  /** Extra vertical offset so figures sit comfortably in cells */
+  slotYOffset: 8,
+
+  timing: Object.freeze({
+    /**
+     * Total ms for one generation’s stick figures to finish fading in: first start →
+     * last at full opacity. Stagger between people is derived as
+     * `(generationAppearMs - personFadeMs) / (n - 1)` so larger waves pack in faster.
+     */
+    generationAppearMs: 3000,
+    /** Legacy floor for time between waves (matches generation length here) */
+    waveIntervalMs: 3000,
+    /** Ms after a person appears before the red infection circle begins growing */
+    infectionDelayMs: 1000,
+    /** Duration of infection circle radius tween */
+    infectionGrowMs: 2000,
+    /** Fade-in duration for each new person group */
+    personFadeMs: 350,
+  }),
+
+  /** Each infected person spawns this many new infections per wave (random range) */
+  newInfectionsPerCarrierMin: 12,
+  newInfectionsPerCarrierMax: 18,
+
+  /** Generations of new infections after “Watch”; then auto-stop (same outcome UI as Stop). */
+  maxWaves: 3,
+
+  selectors: Object.freeze({
+    svg: "#measles-spread-svg",
+    title: "#measles-spread-title",
+    sub: "#measles-spread-sub",
+    btn: "#measles-spread-btn",
+    count: "#measles-spread-count",
+  }),
+});
+
+// -----------------------------------------------------------------------------
+// Grid geometry — pure helpers for slot ↔ pixel mapping and wave placement
+// -----------------------------------------------------------------------------
+
+/**
+ * @param {number} width
+ * @param {number} height
+ * @param {number} cellW
+ * @param {number} cellH
+ * @param {number} yOffset — vertical nudge applied in slotToXY / xyToSlot
+ */
+function createMeaslesGrid(width, height, cellW, cellH, yOffset) {
+  const cols = Math.floor(width / cellW);
+  const rows = Math.floor(height / cellH);
+  const slotCount = cols * rows;
+
+  /** Linear index → centre of that grid cell (slots run left→right, top→bottom). */
+  function slotToXY(slot) {
+    return {
+      x: (slot % cols + 0.5) * cellW,
+      y: (Math.floor(slot / cols) + 0.5) * cellH + yOffset,
+    };
+  }
+
+  /** Pixel position → nearest slot index (clamped to valid range). */
+  function xyToSlot(cx, cy) {
+    const col = Math.round(cx / cellW - 0.5);
+    const row = Math.round((cy - yOffset) / cellH - 0.5);
+    return Math.max(0, Math.min(slotCount - 1, row * cols + col));
+  }
+
+  /**
+   * Pick up to `n` unoccupied slots, preferring cells closest to any occupied slot
+   * so each wave grows outward from existing infections.
+   * @param {Set<number>} occupiedSlots
+   * @param {number} n
+   * @returns {number[]}
+   */
+  function pickClusteredFreeSlots(occupiedSlots, n) {
+    const candidates = [];
+
+    for (let i = 0; i < slotCount; i++) {
+      if (occupiedSlots.has(i)) continue;
+
+      const { x, y } = slotToXY(i);
+      let minDist = Infinity;
+
+      occupiedSlots.forEach((occupiedSlot) => {
+        const pos = slotToXY(occupiedSlot);
+        const dist = Math.hypot(x - pos.x, y - pos.y);
+        if (dist < minDist) minDist = dist;
+      });
+
+      candidates.push({ slot: i, dist: minDist });
+    }
+
+    candidates.sort((a, b) => a.dist - b.dist);
+    return candidates.slice(0, n).map((c) => c.slot);
+  }
+
+  return { cols, rows, slotCount, slotToXY, xyToSlot, pickClusteredFreeSlots };
+}
+
+// -----------------------------------------------------------------------------
+// Drawing — stick figure + infection animation (D3 selections)
+// -----------------------------------------------------------------------------
+
+const MEASLES_INFECTION_RED = "#E24B4A";
+
+/**
+ * Draw a simple stick figure inside a dedicated body group so infection styling
+ * targets only the figure (not John’s name label or overlay circle).
+ * @param {import("d3").Selection} parentG
+ * @returns {{ chestY: number, bodyG: import("d3").Selection }}
+ */
+function drawMeaslesPersonFigure(parentG, cx, cy, scale, color) {
+  const bodyG = parentG.append("g").attr("class", "measles-figure-body");
+
+  const headR = 7 * scale;
+  const headY = cy - 20 * scale;
+  const bTop = headY + headR;
+  const bBot = bTop + 20 * scale;
+  const armY = bTop + 7 * scale;
+  const armSpan = 10 * scale;
+  const legSpan = 6 * scale;
+  const legLen = 18 * scale;
+
+  bodyG
+    .append("circle")
+    .attr("cx", cx)
+    .attr("cy", headY)
+    .attr("r", headR)
+    .attr("fill", color);
+
+  bodyG
+    .append("line")
+    .attr("x1", cx)
+    .attr("y1", bTop)
+    .attr("x2", cx)
+    .attr("y2", bBot)
+    .attr("stroke", color)
+    .attr("stroke-width", 3 * scale);
+
+  bodyG
+    .append("line")
+    .attr("x1", cx - armSpan)
+    .attr("y1", armY)
+    .attr("x2", cx + armSpan)
+    .attr("y2", armY)
+    .attr("stroke", color)
+    .attr("stroke-width", 2.5 * scale);
+
+  bodyG
+    .append("line")
+    .attr("x1", cx)
+    .attr("y1", bBot)
+    .attr("x2", cx - legSpan)
+    .attr("y2", bBot + legLen)
+    .attr("stroke", color)
+    .attr("stroke-width", 2.5 * scale);
+
+  bodyG
+    .append("line")
+    .attr("x1", cx)
+    .attr("y1", bBot)
+    .attr("x2", cx + legSpan)
+    .attr("y2", bBot + legLen)
+    .attr("stroke", color)
+    .attr("stroke-width", 2.5 * scale);
+
+  const chestY = bTop + 6 * scale;
+  return { chestY, bodyG };
+}
+
+/** John only: red infection circle grows on the chest after `delayMs`. */
+function animateMeaslesInfectionCircle(parentG, cx, chestY, scale, delayMs, growMs) {
+  parentG
+    .append("circle")
+    .attr("cx", cx)
+    .attr("cy", chestY)
+    .attr("r", 0)
+    .attr("fill", MEASLES_INFECTION_RED)
+    .attr("opacity", 0.75)
+    .transition()
+    .delay(delayMs)
+    .duration(growMs)
+    .ease(d3.easeCubicOut)
+    .attr("r", 7 * scale);
+}
+
+/** Everyone except John: tween head fill and limb strokes to infection red. */
+function animateMeaslesInfectionBody(bodyG, delayMs, growMs) {
+  const ease = d3.easeCubicOut;
+  bodyG
+    .selectAll("circle")
+    .transition()
+    .delay(delayMs)
+    .duration(growMs)
+    .ease(ease)
+    .attr("fill", MEASLES_INFECTION_RED);
+
+  bodyG
+    .selectAll("line")
+    .transition()
+    .delay(delayMs)
+    .duration(growMs)
+    .ease(ease)
+    .attr("stroke", MEASLES_INFECTION_RED);
+}
+
+// -----------------------------------------------------------------------------
+// Main entry — binds DOM, runs simulation state machine (initial | spreading | done)
+// -----------------------------------------------------------------------------
+
 function measlesSpreadVis() {
+  const cfg = MEASLES_SPREAD;
+  const t = cfg.timing;
+  const sel = cfg.selectors;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Visualization: Measles Spread Animation (John radial spread)
-//
-// Illustrates measles infectivity by showing one person (John) at the centre
-// of the canvas and animating waves of 12–18 newly-infected people radiating
-// outward every 4 seconds.  Red infection circles grow on each person 2 seconds
-// after they appear, taking 2 seconds to reach full size.
-//
-// DOM elements expected in index.html (all inside #vis-measles-spread):
-//   #measles-spread-svg    — the <svg> tag D3 draws into
-//   #measles-spread-title  — <h4> updated with wave narrative
-//   #measles-spread-sub    — <p>  updated with running commentary
-//   #measles-spread-btn    — <button> that starts / stops / resets
-//   #measles-spread-count  — inline <strong> showing total infected
-// ─────────────────────────────────────────────────────────────────────────────
-const measlesSpreadVis = () => {
+  const svgEl = document.querySelector(sel.svg);
+  const titleEl = document.querySelector(sel.title);
+  const subEl = document.querySelector(sel.sub);
+  const btnEl = document.querySelector(sel.btn);
+  const countEl = document.querySelector(sel.count);
 
-  // ── Canvas & layout constants ──────────────────────────────────────────────
-  const W = 660, H = 380;          // SVG viewBox dimensions (px)
-  const SCALE = 0.4;              // uniform scale factor for all stick figures
-  const CELL_W = 20, CELL_H = 30; // width × height of each person's grid cell
-  const COLS = Math.floor(W / CELL_W);
-  const ROWS = Math.floor(H / CELL_H);
-
-  // Timing constants (all in milliseconds)
-  const WAVE_INTERVAL    = 3000;  // new wave of infections every 4 seconds
-  const INFECTION_DELAY  = 1000;  // red circle starts growing 2s after person appears
-  const INFECTION_DUR    = 2000;  // red circle takes 2s to reach full radius
-  const MAX_RUNTIME      = 60000; // auto-stop after 30 seconds of spreading
-
-  // ── DOM handles ────────────────────────────────────────────────────────────
-  const svgEl      = document.querySelector("#measles-spread-svg");
-  const titleEl    = document.querySelector("#measles-spread-title");
-  const subEl      = document.querySelector("#measles-spread-sub");
-  const btnEl      = document.querySelector("#measles-spread-btn");
-  const countEl    = document.querySelector("#measles-spread-count");
-
-  // Bail out gracefully if the HTML mount points are missing
   if (!svgEl || !titleEl || !subEl || !btnEl || !countEl) {
-    console.warn("measlesSpreadVis: one or more DOM elements not found; skipping.");
+    console.warn("measlesSpreadVis: required DOM nodes missing; skipping init.");
     return;
   }
 
-  // Bind D3 to the existing <svg> element and set a fixed viewBox so the
-  // coordinate space is always 660 × 380, regardless of screen width.
-  const svg = d3.select(svgEl).attr("viewBox", `0 0 ${W} ${H}`);
+  /** Current SVG height (px); grows downward when the grid is full. */
+  let vizHeight = cfg.height;
+  /** Grid helpers always match `vizHeight` and `cfg.width`. */
+  let grid = createMeaslesGrid(
+    cfg.width,
+    vizHeight,
+    cfg.cellWidth,
+    cfg.cellHeight,
+    cfg.slotYOffset
+  );
 
-  // ── State variables ────────────────────────────────────────────────────────
-  let phase         = "initial";  // "initial" | "spreading" | "done"
-  let timer         = null;       // handle returned by setInterval
-  let elapsed       = 0;          // ms elapsed since spreading began
-  let totalInfected = 1;          // running count (John starts infected)
-  let generation    = 0;          // wave counter (increments each interval)
-  let occupiedSlots = new Set();  // set of grid slot indices already filled
+  const svg = d3.select(svgEl).attr("viewBox", `0 0 ${cfg.width} ${vizHeight}`);
 
-  // ── Grid helpers ───────────────────────────────────────────────────────────
-
-  /**
-   * Convert a linear slot index → pixel centre {x, y}.
-   * Slots are numbered left-to-right, top-to-bottom.
-   */
-  const slotToXY = (slot) => ({
-    x: (slot % COLS + 0.5) * CELL_W,
-    y: (Math.floor(slot / COLS) + 0.5) * CELL_H + 8,
-  });
+  function applyViewBox() {
+    svg.attr("viewBox", `0 0 ${cfg.width} ${vizHeight}`);
+  }
 
   /**
-   * Return the slot index whose centre is closest to pixel (cx, cy).
-   * Used to pin John to the exact centre of the canvas.
+   * Add rows at the bottom until at least `neededFree` empty slots exist.
+   * Slot indices for existing people stay valid; new slots are appended row-wise.
    */
-  const xyToSlot = (cx, cy) => {
-    const col = Math.round(cx / CELL_W - 0.5);
-    const row = Math.round((cy - 8) / CELL_H - 0.5);
-    return Math.max(0, Math.min(COLS * ROWS - 1, row * COLS + col));
-  };
+  function expandDownUntilFreeSlots(neededFree) {
+    while (grid.slotCount - occupiedSlots.size < neededFree) {
+      const freeNow = grid.slotCount - occupiedSlots.size;
+      const deficit = neededFree - freeNow;
+      const rowsToAdd = Math.max(1, Math.ceil(deficit / grid.cols));
+      vizHeight += rowsToAdd * cfg.cellHeight;
+      grid = createMeaslesGrid(
+        cfg.width,
+        vizHeight,
+        cfg.cellWidth,
+        cfg.cellHeight,
+        cfg.slotYOffset
+      );
+      applyViewBox();
+    }
+  }
+
+  // --- Mutable simulation state ---
+  let phase = "initial"; // "initial" | "spreading" | "done"
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let waveTimer = null;
+  let totalInfected = 1;
+  let waveIndex = 0;
+  /** Grid slots that already have a person */
+  const occupiedSlots = new Set();
+  /** How many “carriers” drive the next wave’s branching factor */
+  let currentGenerationSize = 1;
+
+  /** John stays at the centre of the original (non-expanded) viewport. */
+  const johnCenterSlot = () => grid.xyToSlot(cfg.width / 2, cfg.height / 2);
 
   /**
-   * Return up to `n` free (unoccupied) slot indices sorted by distance from
-   * origin (ox, oy), so each new wave generates clusters spreading out from John.
+   * Add one person at `slot`: fade-in after `appearDelayMs`, infection animation after.
+   * @param {boolean} isJohn — primary styling + optional label
    */
-    const getClusteredFreeSlots = (n) => {
-      const candidates = [];
-    
-      for (let i = 0; i < COLS * ROWS; i++) {
-        if (occupiedSlots.has(i)) continue;
-    
-        const { x, y } = slotToXY(i);
-    
-        // Find distance to the NEAREST occupied slot
-        let minDist = Infinity;
-    
-        occupiedSlots.forEach(occupiedSlot => {
-          const pos = slotToXY(occupiedSlot);
-        
-          const dist = Math.hypot(
-            x - pos.x,
-            y - pos.y
-          );
-      
-          if (dist < minDist) {
-            minDist = dist;
-          }
-        });
-    
-        candidates.push({
-          slot: i,
-          dist: minDist
-        });
-      }
-  
-      // Closest-to-existing-infection first
-      candidates.sort((a, b) => a.dist - b.dist);
-  
-      return candidates.slice(0, n).map(c => c.slot);
-    };
-
-  // ── Drawing helpers ────────────────────────────────────────────────────────
-
-  /**
-   * Append a stick figure centred at (cx, cy) to `parentG`.
-   * Returns the y-coordinate of the chest, where the infection circle is placed.
-   *
-   * @param {d3.Selection} parentG - The <g> element to draw into.
-   * @param {number}       cx      - Horizontal centre of the figure.
-   * @param {number}       cy      - Vertical anchor (waist level) of the figure.
-   * @param {number}       s       - Uniform scale multiplier.
-   * @param {string}       color   - CSS colour string for all body parts.
-   * @returns {number} chestY - Y coordinate of the chest centre.
-   */
-  const drawPerson = (parentG, cx, cy, s, color) => {
-    const headR   = 7  * s;
-    const headY   = cy - 20 * s;          // centre of the head circle
-    const bTop    = headY + headR;         // top of torso line
-    const bBot    = bTop  + 20 * s;        // bottom of torso line
-    const armY    = bTop  + 7  * s;        // y-level of the arm bar
-    const armSpan = 10 * s;               // half-width of arms
-    const legSpan = 6  * s;               // horizontal spread of legs at foot
-    const legLen  = 18 * s;               // vertical length of each leg
-
-    parentG.append("circle")              // head
-      .attr("cx", cx).attr("cy", headY).attr("r", headR)
-      .attr("fill", color);
-
-    parentG.append("line")               // torso
-      .attr("x1", cx).attr("y1", bTop).attr("x2", cx).attr("y2", bBot)
-      .attr("stroke", color).attr("stroke-width", 3 * s);
-
-    parentG.append("line")               // arms
-      .attr("x1", cx - armSpan).attr("y1", armY)
-      .attr("x2", cx + armSpan).attr("y2", armY)
-      .attr("stroke", color).attr("stroke-width", 2.5 * s);
-
-    parentG.append("line")               // left leg
-      .attr("x1", cx).attr("y1", bBot)
-      .attr("x2", cx - legSpan).attr("y2", bBot + legLen)
-      .attr("stroke", color).attr("stroke-width", 2.5 * s);
-
-    parentG.append("line")               // right leg
-      .attr("x1", cx).attr("y1", bBot)
-      .attr("x2", cx + legSpan).attr("y2", bBot + legLen)
-      .attr("stroke", color).attr("stroke-width", 2.5 * s);
-
-    // Return chest Y so the caller can position the infection circle
-    return bTop + 6 * s;
-  };
-
-  /**
-   * Append a red infection circle to `parentG` that:
-   *   - starts at radius 0
-   *   - begins growing after `delay` milliseconds
-   *   - reaches its final radius over INFECTION_DUR milliseconds
-   *
-   * @param {d3.Selection} parentG - Container <g> to append the circle to.
-   * @param {number}       cx      - Horizontal centre of the circle.
-   * @param {number}       chestY  - Vertical centre (the person's chest).
-   * @param {number}       s       - Scale multiplier (matches the figure's scale).
-   * @param {number}       delay   - Milliseconds to wait before the grow transition starts.
-   */
-  const animateInfection = (parentG, cx, chestY, s, delay) => {
-    parentG.append("circle")
-      .attr("cx", cx).attr("cy", chestY)
-      .attr("r", 0)                        // start invisible
-      .attr("fill", "#E24B4A")
-      .attr("opacity", 0.75)
-      .transition()
-        .delay(delay)
-        .duration(INFECTION_DUR)
-        .ease(d3.easeCubicOut)
-        .attr("r", 7 * s);                 // grow to final radius
-  };
-
-  /**
-   * Create one complete person (figure + infection circle) at the given grid slot.
-   * The figure fades in after `appearDelay` ms; the infection circle starts growing
-   * an additional INFECTION_DELAY ms after that.
-   *
-   * @param {number}  slot         - Grid slot index.
-   * @param {number}  appearDelay  - Ms to wait before the figure fades in.
-   * @param {boolean} isJohn       - If true, uses primary colour and adds a name label.
-   */
-  const addPersonToSvg = (slot, appearDelay, isJohn) => {
-    const { x, y } = slotToXY(slot);
-
-    // John uses the page's primary text colour; everyone else uses muted secondary
+  function addPersonToSvg(slot, appearDelayMs, isJohn) {
+    const { x, y } = grid.slotToXY(slot);
     const color = isJohn ? "black" : THEME.muted;
 
-    // Wrap all elements for this person in a single <g> so they fade in together
     const g = svg.append("g").attr("opacity", 0);
     g.transition()
-      .delay(appearDelay)
-      .duration(350)
+      .delay(appearDelayMs)
+      .duration(t.personFadeMs)
       .attr("opacity", 1);
 
-    // Draw the stick figure and get back the chest Y for the infection circle
-    const chestY = drawPerson(g, x, y, SCALE, color);
+    const { chestY, bodyG } = drawMeaslesPersonFigure(g, x, y, cfg.figureScale, color);
+    const infectionStart = appearDelayMs + t.infectionDelayMs;
 
-    // Schedule the infection circle: starts INFECTION_DELAY ms after the person appears
-    animateInfection(g, x, chestY, SCALE, appearDelay + INFECTION_DELAY);
+    if (isJohn) {
+      animateMeaslesInfectionCircle(
+        g,
+        x,
+        chestY,
+        cfg.figureScale,
+        infectionStart,
+        t.infectionGrowMs
+      );
+    } else {
+      animateMeaslesInfectionBody(bodyG, infectionStart, t.infectionGrowMs);
+    }
 
-    // Name label centred below John's feet
     if (isJohn) {
       g.append("text")
         .attr("id", "john-label")
-        .attr("x", x).attr("y", y + 20)
+        .attr("x", x)
+        .attr("y", y + 20)
         .attr("text-anchor", "middle")
         .attr("font-size", 9)
         .attr("font-family", "Inter, system-ui, sans-serif")
         .attr("fill", "black")
         .text("John");
     }
-  };
+  }
 
-  // ── Simulation lifecycle ───────────────────────────────────────────────────
+  function clearWaveTimer() {
+    if (waveTimer != null) {
+      clearTimeout(waveTimer);
+      waveTimer = null;
+    }
+  }
 
-  /**
-   * Reset everything: clear the SVG, reset all state variables, and draw
-   * only John at the centre of the canvas.
-   */
-  const init = () => {
-    svg.selectAll("*").remove();   // wipe all existing SVG children
+  /** Reset SVG and state; draw only John at canvas centre. */
+  function resetToInitial() {
+    clearWaveTimer();
+    svg.selectAll("*").remove();
     occupiedSlots.clear();
     totalInfected = 1;
-    generation    = 0;
-    elapsed       = 0;
+    waveIndex = 0;
     currentGenerationSize = 1;
     countEl.textContent = "1";
 
-    // Pin John to the grid slot nearest the canvas centre
-    const johnSlot = xyToSlot(W / 2, H / 2);
-    occupiedSlots.add(johnSlot);
-    addPersonToSvg(johnSlot, 0, true);
-  };
+    vizHeight = cfg.height;
+    grid = createMeaslesGrid(
+      cfg.width,
+      vizHeight,
+      cfg.cellWidth,
+      cfg.cellHeight,
+      cfg.slotYOffset
+    );
+    applyViewBox();
+
+    const slot = johnCenterSlot();
+    occupiedSlots.add(slot);
+    addPersonToSvg(slot, 0, true);
+  }
+
+  function flashCountInElement(containerEl, beforeText, count) {
+    const n = String(Math.max(0, Math.floor(Number(count))));
+    containerEl.replaceChildren();
+    containerEl.append(beforeText);
+    const span = document.createElement("span");
+    span.className = "measles-outcome-count";
+    span.textContent = n;
+    containerEl.appendChild(span);
+    requestAnimationFrame(() => {
+      span.classList.add("measles-outcome-count--flash");
+      span.addEventListener(
+        "animationend",
+        () => span.classList.remove("measles-outcome-count--flash"),
+        { once: true }
+      );
+    });
+  }
 
   /**
-   * Emit one wave of 12–18 new infections radiating outward from John.
-   * Called immediately on "Watch" click, then again every WAVE_INTERVAL ms.
-   * Auto-stops when MAX_RUNTIME is exceeded or no free slots remain.
+   * Set the done-state title with a span around the count and run a short flash
+   * animation so the number draws attention when it appears or changes.
    */
-  const spread = () => {
-    // Stop automatically after MAX_RUNTIME ms
-    if (elapsed >= MAX_RUNTIME) {
-      stop();
-      return;
-    }
+  function showOutcomeTitleFlashing(total) {
+    flashCountInElement(titleEl, "Outcome: ", total);
+    titleEl.append(" people infected");
+  }
 
-    // Total new infections generated THIS wave
-    let newInfections = 0;
+  /** End animation and show summary copy. */
+  function stopSpreading() {
+    clearWaveTimer();
+    phase = "done";
+    btnEl.textContent = "Reset";
+    showOutcomeTitleFlashing(totalInfected);
+    subEl.textContent =
+      "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
+  }
 
-    // Each currently infected person infects 12–18 more
+  /** One wave: branch from current carriers, fill clustered free slots, schedule next. */
+  function runWave() {
+    const randSpan =
+      cfg.newInfectionsPerCarrierMax - cfg.newInfectionsPerCarrierMin + 1;
+    let newInfectionTarget = 0;
     for (let i = 0; i < currentGenerationSize; i++) {
-      newInfections += Math.floor(Math.random() * 7) + 12;
+      newInfectionTarget += Math.floor(Math.random() * randSpan) + cfg.newInfectionsPerCarrierMin;
     }
 
-    // John's pixel position stays fixed at the canvas centre
-    const { x: jx, y: jy } = slotToXY(xyToSlot(W / 2, H / 2));
+    expandDownUntilFreeSlots(newInfectionTarget);
+    const slots = grid.pickClusteredFreeSlots(occupiedSlots, newInfectionTarget);
 
-    // Get the nearest free slots
-    const slots = getClusteredFreeSlots(newInfections);
-    if (slots.length === 0) { stop(); return; }  // grid is full
+    const n = slots.length;
+    const genMs = t.generationAppearMs;
+    /** Spread fade starts across `genMs` so the last person reaches opacity 1 at `genMs`. */
+    const staggerMs =
+      n <= 1 ? 0 : Math.max(0, (genMs - t.personFadeMs) / (n - 1));
 
-    // Stagger each person's appearance by 80 ms so the wave ripples visually
     slots.forEach((slot, i) => {
       occupiedSlots.add(slot);
-      addPersonToSvg(slot, i * 80, false);
+      addPersonToSvg(slot, i * staggerMs, false);
     });
 
     currentGenerationSize = slots.length;
     totalInfected += slots.length;
-    generation++;
+    waveIndex++;
 
-    // Calculate how long this specific wave needs to finish appearing.
-    // (Total staggered delay) + (1000ms buffer for the animation to settle)
-    const waveDuration = (slots.length * 80) + 1000; 
-    
-    // Ensure we still wait AT LEAST the original 3 seconds (WAVE_INTERVAL)
-    const timeToNextWave = Math.max(WAVE_INTERVAL, waveDuration);
+    const waveAppearDurationMs =
+      n <= 1 ? genMs : (n - 1) * staggerMs + t.personFadeMs;
+    const timeToNextWave = Math.max(t.waveIntervalMs, waveAppearDurationMs);
 
-    elapsed += timeToNextWave;
+    countEl.textContent = String(totalInfected);
+    titleEl.textContent = `Generation ${waveIndex}: ${slots.length} more people infected`;
+    flashCountInElement(subEl, "Total infected so far: ", totalInfected);
 
-    // Update the narrative text and infected counter
-    countEl.textContent    = totalInfected;
-    titleEl.textContent    = `Generation ${generation}: ${slots.length} more people infected`;
-    subEl.textContent      = `Total infected so far: ${totalInfected}`;
-
-    // Chain the next wave dynamically instead of relying on a fixed interval
-    if (phase === "spreading") {
-      timer = setTimeout(spread, timeToNextWave); 
+    if (waveIndex >= cfg.maxWaves) {
+      stopSpreading();
+    } else if (phase === "spreading") {
+      waveTimer = setTimeout(runWave, timeToNextWave);
     }
+  }
 
-  };
-
-  /**
-   * Halt the animation and transition the UI into the "done" state.
-   */
-  const stop = () => {
-    if (timer) { clearTimeout(timer); timer = null; }
-    phase = "done";
-    btnEl.textContent   = "Reset";
-    titleEl.textContent = `Outcome: ${totalInfected} people infected`;
-    subEl.textContent   = "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
-  };
-
-  // ── Button handler ─────────────────────────────────────────────────────────
   btnEl.addEventListener("click", () => {
     if (phase === "initial") {
-      // ── Start spreading ──────────────────────────────────────────────────
       phase = "spreading";
-      btnEl.textContent  = "Stop";
-      titleEl.textContent = "Measles spreads to 12–18 people per infected person…";
-      subEl.textContent  = "Each wave represents one generation of new infections.";
-      // Hide John's name label after the first click
+      btnEl.textContent = "Stop";
+      titleEl.textContent =
+        "Measles spreads to 12–18 people per infected person…";
+      subEl.textContent = "Each wave represents one generation of new infections.";
       d3.select("#john-label").transition().duration(300).style("opacity", 0);
-
-      spread();                                     // first wave immediately
-
+      runWave();
     } else if (phase === "spreading") {
-      // ── Stop mid-animation ───────────────────────────────────────────────
-      stop();
-
-    } else if (phase === "done") {
-      // ── Full reset back to just John ─────────────────────────────────────
+      stopSpreading();
+    } else {
       phase = "initial";
-      btnEl.textContent   = "Watch what happens next →";
+      btnEl.textContent = "Watch what happens next →";
       titleEl.textContent = "John gets infected with measles";
-      subEl.textContent   = "See how quickly measles — one of the most contagious diseases - spreads.";
-      init();
+      subEl.textContent =
+        "See how quickly measles — one of the most contagious diseases - spreads.";
+      resetToInitial();
     }
   });
 
-  // ── Boot: draw the initial state ───────────────────────────────────────────
-  init();
-};
-
-// Initialise the measles spread animation as soon as the script runs
-// (D3 and the DOM are both ready at this point since the script tag is at
-// the bottom of <body>, after all HTML elements have been parsed).
-measlesSpreadVis();
-
+  resetToInitial();
 }
 
 window.measlesSpreadVis = measlesSpreadVis;

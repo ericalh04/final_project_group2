@@ -31,7 +31,19 @@ const THEME = {
   muted: "rgba(114, 105, 105, 0.72)",
   cyan: "#2DE2E6",
   teal: "#00D1B2",
+  /** MCV1 line when coverage is below herd immunity threshold */
+  coverageBelow: "#00D1B2",
+  /** MCV1 line when coverage is at or above herd immunity threshold */
+  coverageAbove: "#34d399",
   outbreak: "#FF4136",
+  /** Below-threshold vaccination band (distinct from case counts) */
+  dangerZoneFill: "rgba(124, 58, 237, 0.22)",
+  /** At/above threshold: fill between coverage curve and 95% line */
+  safeZoneFill: "rgba(52, 211, 153, 0.2)",
+  /** Measles case area — warm orange, not the same hue as danger/vacc shading */
+  casesAreaFill: "rgba(234, 88, 12, 0.44)",
+  /** Hover marker on cases line */
+  casesMark: "#ea580c",
 };
 
 // -----------------------------
@@ -277,10 +289,114 @@ const interpolateSeries = (rows) => {
   return out;
 };
 
+function enforceViz1LayerCheckboxes() {
+  const c = document.querySelector("#viz1-layer-cases");
+  const v = document.querySelector("#viz1-layer-vacc");
+  if (c && v && !c.checked && !v.checked) v.checked = true;
+}
+
+function readViz1LayersFromDom() {
+  enforceViz1LayerCheckboxes();
+  const c = document.querySelector("#viz1-layer-cases");
+  const v = document.querySelector("#viz1-layer-vacc");
+  return {
+    showCases: c ? c.checked : true,
+    showVacc: v ? v.checked : true,
+  };
+}
+
+/**
+ * Split coverage into polylines that stay entirely above or below `threshold`,
+ * inserting an interpolated point at crossings so each segment can use one stroke color.
+ */
+function splitCoverageLineSegments(series, threshold) {
+  const pts = series.filter((d) => Number.isFinite(d.year) && Number.isFinite(d.coverage));
+  if (!pts.length) return [];
+
+  const atCrossing = (a, b) => {
+    const c0 = a.coverage;
+    const c1 = b.coverage;
+    if (c0 === c1) return null;
+    const u = (threshold - c0) / (c1 - c0);
+    if (u <= 0 || u >= 1) return null;
+    return { year: a.year + u * (b.year - a.year), coverage: threshold };
+  };
+
+  const segments = [];
+  let seg = [pts[0]];
+  let segAbove = pts[0].coverage >= threshold;
+
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const cur = pts[i];
+    const prevAb = prev.coverage >= threshold;
+    const curAb = cur.coverage >= threshold;
+
+    if (curAb === prevAb) {
+      seg.push(cur);
+    } else {
+      const xpt = atCrossing(prev, cur);
+      if (xpt) {
+        seg.push(xpt);
+        segments.push({ above: prevAb, points: seg });
+        seg = [xpt, cur];
+        segAbove = curAb;
+      } else {
+        seg.push(cur);
+      }
+    }
+  }
+  if (seg.length) segments.push({ above: segAbove, points: seg });
+  return segments;
+}
+
+function updateViz1StoryCaption() {
+  const el = document.querySelector("#viz1-story-caption");
+  if (!el) return;
+  enforceViz1LayerCheckboxes();
+  const cOn = document.querySelector("#viz1-layer-cases")?.checked;
+  const vOn = document.querySelector("#viz1-layer-vacc")?.checked;
+  if (cOn && vOn) {
+    el.innerHTML =
+      "<b>Full view.</b> MCV1 coverage (left axis, 0–100%): the line is <strong>green</strong> when coverage is at or above the herd immunity threshold and <strong>teal</strong> when it is below. Dashed line: 95% target for measles. <strong>Light green</strong> fill sits between the curve and that line when coverage is at or above 95%; <strong>violet</strong> fill does the same when it is under 95%. <strong>Orange</strong> area: reported cases (log scale, right axis). Use the toggles or press <strong>Start</strong> for a guided tour.";
+  } else if (vOn && !cOn) {
+    el.innerHTML =
+      "<b>Vaccination only.</b> The left axis shows MCV1 (first-dose measles) coverage as a line: <strong>green</strong> when it is at or above the ~<strong>95%</strong> target for measles herd immunity, <strong>teal</strong> when it is lower. The dashed horizontal line is that 95% target. <strong>Light green</strong> fill appears between the curve and the line when coverage meets or beats the target; <strong>violet</strong> fill appears when it falls short. Turn on <strong>Measles cases</strong> to add reported counts on the same timeline.";
+  } else if (cOn && !vOn) {
+    el.innerHTML =
+      "<b>Cases layer only.</b> The orange area shows reported cases (log scale, right axis) so both small counts and large outbreaks stay readable. Turn on <strong>Vaccination coverage</strong> to compare immunization trends with case surges.";
+  } else {
+    el.textContent = "";
+  }
+}
+
+/** Guided tour: each step sets layer checkboxes and caption until user presses Done. */
+const VIZ1_WALKTHROUGH_STEPS = [
+  {
+    vacc: true,
+    cases: false,
+    html: "<b>Step 1 of 3 — Vaccination only.</b> MCV1 on the left axis: <strong>green</strong> line at or above ~95%, <strong>teal</strong> below. <strong>Light green</strong> fill between curve and dashed line when coverage is on target; <strong>violet</strong> when it is under. Press <strong>Next</strong> for the cases layer.",
+  },
+  {
+    vacc: false,
+    cases: true,
+    html: "<b>Step 2 of 3 — Cases only.</b> Only reported measles cases are shown: one solid orange fill on a <strong>logarithmic</strong> scale (right axis). Press <strong>Next</strong> to turn both layers on and compare.",
+  },
+  {
+    vacc: true,
+    cases: true,
+    html: "<b>Step 3 of 3 — Both layers.</b> <strong>Light green</strong> / <strong>violet</strong> bands show on- vs under-target vaccination; <strong>orange</strong> shows reported cases. Large surges often follow dips under the threshold (reporting and other factors matter too). Press <strong>Done</strong> to exit the tour.",
+  },
+];
+
 // -----------------------------
 // Visualization 1: Outbreak Timeline (dual-axis + brush + dropdown)
 // -----------------------------
-const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
+const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95, layers }) => {
+  let showCases = layers?.showCases !== false;
+  let showVacc = layers?.showVacc !== false;
+  if (!showCases && !showVacc) showVacc = true;
+
   const width = 1100;
   const height = 760;
   const margin = { top: 64, right: 86, bottom: 118, left: 72 };
@@ -288,7 +404,7 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
   const innerH = height - margin.top - margin.bottom;
 
   const brushH = 64;
-  const brushGap = 36;
+  const brushGap = 46; // space for x-axis title between main axis and brush
   const brushTop = innerH + brushGap;
 
   const svg = d3
@@ -352,13 +468,13 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .attr("transform", `translate(${innerW},0)`)
     .call(yAxisR);
 
-  // Axis labels
+  // Y-axis titles along plot sides (rotated, centered on chart height)
   g.selectAll("text.yL-label")
     .data([null])
     .join("text")
     .attr("class", "yL-label")
-    .attr("x", 0)
-    .attr("y", -18)
+    .attr("transform", `translate(${-56},${innerH / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
     .attr("fill", THEME.muted)
     .attr("font-size", 12)
     .text("Coverage (MCV1)");
@@ -367,12 +483,22 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .data([null])
     .join("text")
     .attr("class", "yR-label")
-    .attr("x", innerW)
-    .attr("y", -18)
-    .attr("text-anchor", "end")
+    .attr("transform", `translate(${innerW + 56},${innerH / 2}) rotate(90)`)
+    .attr("text-anchor", "middle")
     .attr("fill", THEME.muted)
     .attr("font-size", 12)
     .text("Cases (log)");
+
+  g.selectAll("text.x-axis-label")
+    .data([null])
+    .join("text")
+    .attr("class", "x-axis-label")
+    .attr("x", innerW / 2)
+    .attr("y", innerH + 34)
+    .attr("text-anchor", "middle")
+    .attr("fill", THEME.muted)
+    .attr("font-size", 12)
+    .text("Year");
 
   // Threshold reference line (herd immunity)
   const threshY = yCov(threshold);
@@ -408,12 +534,14 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .y1((d) => yCases(d.casesClamped))
     .curve(d3.curveCatmullRom.alpha(0.85));
 
-  const lineCoverage = d3
+  const lineCoverageSeg = d3
     .line()
-    .defined((d) => Number.isFinite(d.year) && Number.isFinite(d.coverage))
     .x((d) => x(d.year))
     .y((d) => yCov(d.coverage))
     .curve(d3.curveCatmullRom.alpha(0.85));
+
+  const coverageSegments = () =>
+    splitCoverageLineSegments(series, threshold).filter((s) => s.points.length >= 2);
 
   // Dynamic "danger zone" highlighting:
   // We create a second area under the *coverage line* only where coverage < threshold.
@@ -424,6 +552,14 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .x((d) => x(d.year))
     .y0(threshY)
     .y1((d) => yCov(d.coverage))
+    .curve(d3.curveCatmullRom.alpha(0.85));
+
+  const areaSafe = d3
+    .area()
+    .defined((d) => Number.isFinite(d.year) && Number.isFinite(d.coverage) && d.coverage >= threshold)
+    .x((d) => x(d.year))
+    .y0((d) => yCov(d.coverage))
+    .y1(threshY)
     .curve(d3.curveCatmullRom.alpha(0.85));
 
   const plotG = g.selectAll("g.plot").data([null]).join("g").attr("class", "plot");
@@ -437,10 +573,24 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
         enter
           .append("path")
           .attr("class", "cases-area")
-          .attr("fill", "url(#casesGrad)")
+          .attr("fill", THEME.casesAreaFill)
           .attr("opacity", 0.95)
           .attr("d", areaCases),
-      (update) => update.transition().duration(800).attr("d", areaCases)
+      (update) => update.transition().duration(800).attr("fill", THEME.casesAreaFill).attr("d", areaCases)
+    );
+
+  // Safe zone: light green fill between coverage curve and herd threshold when coverage >= threshold
+  plotG
+    .selectAll("path.safe-area")
+    .data([series])
+    .join(
+      (enter) =>
+        enter
+          .append("path")
+          .attr("class", "safe-area")
+          .attr("fill", THEME.safeZoneFill)
+          .attr("d", areaSafe),
+      (update) => update.transition().duration(800).attr("fill", THEME.safeZoneFill).attr("d", areaSafe)
     );
 
   // Danger zone (coverage dip)
@@ -452,42 +602,37 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
         enter
           .append("path")
           .attr("class", "danger-area")
-          .attr("fill", "rgba(255, 65, 54, 0.18)")
+          .attr("fill", THEME.dangerZoneFill)
           .attr("d", areaDanger),
-      (update) => update.transition().duration(800).attr("d", areaDanger)
+      (update) => update.transition().duration(800).attr("fill", THEME.dangerZoneFill).attr("d", areaDanger)
     );
 
-  // Coverage line (left axis)
+  // Coverage line (left axis): green at/above herd immunity threshold, teal below
+  const covSegKey = (s, i) => `${i}-${s.above}-${s.points[0]?.year}-${s.points.at(-1)?.year}`;
   plotG
-    .selectAll("path.cov-line")
-    .data([series])
+    .selectAll("path.cov-line-seg")
+    .data(coverageSegments(), covSegKey)
     .join(
       (enter) =>
         enter
           .append("path")
-          .attr("class", "cov-line")
+          .attr("class", "cov-line-seg")
           .attr("fill", "none")
-          .attr("stroke", THEME.teal)
           .attr("stroke-width", 2.5)
-          .attr("d", lineCoverage),
-      (update) => update.transition().duration(800).attr("d", lineCoverage)
+          .attr("stroke-linecap", "round")
+          .attr("stroke-linejoin", "round")
+          .attr("stroke", (seg) => (seg.above ? THEME.coverageAbove : THEME.coverageBelow))
+          .attr("d", (seg) => lineCoverageSeg(seg.points)),
+      (update) =>
+        update
+          .transition()
+          .duration(800)
+          .attr("stroke", (seg) => (seg.above ? THEME.coverageAbove : THEME.coverageBelow))
+          .attr("d", (seg) => lineCoverageSeg(seg.points)),
+      (exit) => exit.remove()
     );
 
-  // Gradients for the cases area fill (stark orange/red near top)
-  // This is purely visual and does not affect scales.
   const defs = svg.selectAll("defs").data([null]).join("defs");
-  const grad = defs.selectAll("linearGradient#casesGrad").data([null]).join("linearGradient").attr("id", "casesGrad");
-  grad.attr("x1", "0%").attr("x2", "0%").attr("y1", "100%").attr("y2", "0%");
-  grad
-    .selectAll("stop")
-    .data([
-      { o: "0%", c: "rgba(255, 65, 54, 0.10)" },
-      { o: "55%", c: "rgba(255, 133, 27, 0.35)" },
-      { o: "100%", c: "rgba(255, 65, 54, 0.72)" },
-    ])
-    .join("stop")
-    .attr("offset", (d) => d.o)
-    .attr("stop-color", (d) => d.c);
 
   // Clip plotting to the exact x/y bounds so curves don't overshoot past axes.
   defs
@@ -538,8 +683,8 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .join("circle")
     .attr("class", "focus-cov")
     .attr("r", 4.5)
-    .attr("fill", THEME.teal)
-    .attr("stroke", "#ffffff")
+    .attr("fill", THEME.coverageBelow)
+    .attr("stroke", "rgba(15, 23, 42, 0.45)")
     .attr("stroke-width", 1.5);
 
   focusG
@@ -548,8 +693,8 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .join("circle")
     .attr("class", "focus-cases")
     .attr("r", 4.5)
-    .attr("fill", THEME.outbreak)
-    .attr("stroke", "#ffffff")
+    .attr("fill", THEME.casesMark)
+    .attr("stroke", "rgba(15, 23, 42, 0.45)")
     .attr("stroke-width", 1.5);
 
   const overlay = plotG
@@ -578,28 +723,35 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
       focusG.select("line.focus-x").attr("x1", px).attr("x2", px);
       focusG
         .select("circle.focus-cov")
-        .attr("display", covValid ? null : "none")
+        .attr("display", covValid && showVacc ? null : "none")
+        .attr("fill", covValid && d.coverage >= threshold ? THEME.coverageAbove : THEME.coverageBelow)
+        .attr("stroke", covValid && d.coverage >= threshold ? "rgba(6, 95, 70, 0.55)" : "rgba(15, 23, 42, 0.45)")
         .attr("cx", px)
         .attr("cy", covValid ? yCov(d.coverage) : 0);
       focusG
         .select("circle.focus-cases")
-        .attr("display", casesValid ? null : "none")
+        .attr("display", casesValid && showCases ? null : "none")
         .attr("cx", px)
         .attr("cy", casesValid ? yCases(d.casesClamped) : 0);
 
-      const [bx, by] = d3.pointer(event, document.body);
+      // Viewport coords: tooltip is position:fixed; body-relative d3.pointer drifts when scrolled.
+      const bx = event.clientX;
+      const by = event.clientY;
       const below = Number.isFinite(d.coverage) && d.coverage < threshold;
-      showTooltip(
-        [
-          `<div class="tooltip-v">${escapeHtml(country)}</div>`,
-          `<div><span class="tooltip-k">Year</span>: <span class="tooltip-v">${d.year}</span></div>`,
+      const tipParts = [
+        `<div class="tooltip-v">${escapeHtml(country)}</div>`,
+        `<div><span class="tooltip-k">Year</span>: <span class="tooltip-v">${d.year}</span></div>`,
+      ];
+      if (showVacc) {
+        tipParts.push(
           `<div><span class="tooltip-k">Coverage</span>: <span class="tooltip-v">${fmtPct(d.coverage)}</span></div>`,
-          `<div><span class="tooltip-k">Cases</span>: <span class="tooltip-v">${fmtInt(Math.round(d.cases ?? 0))}</span></div>`,
-          `<div><span class="tooltip-k">Threshold</span>: <span class="tooltip-v">${below ? "Below (danger)" : "Above"}</span></div>`,
-        ].join(""),
-        bx,
-        by
-      );
+          `<div><span class="tooltip-k">Threshold</span>: <span class="tooltip-v">${below ? "Below (danger)" : "Above"}</span></div>`
+        );
+      }
+      if (showCases) {
+        tipParts.push(`<div><span class="tooltip-k">Cases</span>: <span class="tooltip-v">${fmtInt(Math.round(d.cases ?? 0))}</span></div>`);
+      }
+      showTooltip(tipParts.join(""), bx, by);
     })
     .on("mouseleave", () => {
       focusG.style("display", "none");
@@ -652,8 +804,12 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
 
     // Cancel in-flight transitions before applying brush-driven redraws.
     plotG.select("path.cases-area").interrupt().attr("d", areaCases(series));
-    plotG.select("path.cov-line").interrupt().attr("d", lineCoverage(series));
+    plotG.selectAll("path.cov-line-seg").each(function () {
+      d3.select(this).interrupt();
+    });
+    plotG.selectAll("path.cov-line-seg").data(coverageSegments(), covSegKey).attr("d", (seg) => lineCoverageSeg(seg.points));
     plotG.select("path.danger-area").interrupt().attr("d", areaDanger(series));
+    plotG.select("path.safe-area").interrupt().attr("d", areaSafe(series));
   };
 
   const brushed = (event) => {
@@ -701,6 +857,20 @@ const renderOutbreakTimeline = ({ mount, country, rows, threshold = 95 }) => {
     .attr("font-family", '"Playfair Display", Georgia, serif')
     .attr("font-size", 20)
     .text(`Outbreak Timeline — ${country}`);
+
+  // Layer visibility (vaccination vs cases): axes, marks, and brush context.
+  const pe = (on) => (on ? null : "none");
+  g.select("g.axis-yL").style("opacity", showVacc ? 1 : 0).style("pointer-events", pe(showVacc));
+  g.select("text.yL-label").style("opacity", showVacc ? 1 : 0);
+  g.select("line.threshold").style("opacity", showVacc ? 1 : 0);
+  g.select("text.threshold-label").style("opacity", showVacc ? 1 : 0);
+  plotG.selectAll("path.cov-line-seg").style("opacity", showVacc ? 1 : 0);
+  plotG.select("path.danger-area").style("opacity", showVacc ? 1 : 0);
+  plotG.select("path.safe-area").style("opacity", showVacc ? 1 : 0);
+  plotG.select("path.cases-area").style("opacity", showCases ? 1 : 0);
+  g.select("g.axis-yR").style("opacity", showCases ? 1 : 0).style("pointer-events", pe(showCases));
+  g.select("text.yR-label").style("opacity", showCases ? 1 : 0);
+  brushG.select("path.brush-area").style("opacity", showCases ? 1 : 0.22);
 };
 
 // -----------------------------
@@ -1045,6 +1215,9 @@ async function main() {
   const yearMin = Number.isFinite(yearMax) ? yearMax - 24 : d3.min(measles, (d) => d.year);
   const measlesRecent = measles.filter((d) => d.year >= yearMin && d.year <= yearMax);
 
+  let viz1TourStep = -1;
+  let viz1ControlsBound = false;
+
   const renderViz1 = () => {
     // Include every available country in alphabetical order.
     const allCountries = Array.from(new Set(measlesRecent.map((d) => d.country).filter(Boolean))).sort((a, b) =>
@@ -1054,18 +1227,104 @@ async function main() {
     const countrySelect = document.querySelector("#countrySelect");
     const initialCountry = allCountries.includes("United States") ? "United States" : allCountries[0] ?? "United States";
     if (countrySelect) {
+      const previous = countrySelect.value;
       d3.select(countrySelect)
         .selectAll("option")
         .data(allCountries, (d) => d)
         .join("option")
         .attr("value", (d) => d)
         .text((d) => d);
-      countrySelect.value = initialCountry;
-      countrySelect.addEventListener("change", () => {
-        renderOutbreakTimeline({ mount: tippingMount, country: countrySelect.value, rows: measlesRecent, threshold: 95 });
+      const nextCountry = previous && allCountries.includes(previous) ? previous : initialCountry;
+      countrySelect.value = nextCountry;
+
+      const syncViz1WalkthroughButton = () => {
+        const btn = document.querySelector("#viz1-walkthrough");
+        if (!btn) return;
+        if (viz1TourStep < 0) {
+          btn.textContent = "Start";
+          btn.setAttribute("aria-label", "Start guided tour of chart layers");
+        } else if (viz1TourStep < VIZ1_WALKTHROUGH_STEPS.length - 1) {
+          btn.textContent = "Next";
+          btn.setAttribute("aria-label", "Next step of guided tour");
+        } else {
+          btn.textContent = "Done";
+          btn.setAttribute("aria-label", "Finish guided tour");
+        }
+      };
+
+      const redrawViz1 = () => {
+        if (viz1TourStep < 0) updateViz1StoryCaption();
+        renderOutbreakTimeline({
+          mount: tippingMount,
+          country: countrySelect.value,
+          rows: measlesRecent,
+          threshold: 95,
+          layers: readViz1LayersFromDom(),
+        });
+      };
+
+      const endViz1TourAndRedraw = () => {
+        viz1TourStep = -1;
+        syncViz1WalkthroughButton();
+        redrawViz1();
+      };
+
+      if (!viz1ControlsBound) {
+        viz1ControlsBound = true;
+        countrySelect.addEventListener("change", endViz1TourAndRedraw);
+        document.querySelector("#viz1-layer-cases")?.addEventListener("change", endViz1TourAndRedraw);
+        document.querySelector("#viz1-layer-vacc")?.addEventListener("change", endViz1TourAndRedraw);
+        document.querySelector("#viz1-walkthrough")?.addEventListener("click", () => {
+          const btn = document.querySelector("#viz1-walkthrough");
+          const cap = document.querySelector("#viz1-story-caption");
+          const c = document.querySelector("#viz1-layer-cases");
+          const v = document.querySelector("#viz1-layer-vacc");
+          if (!btn || !cap || !c || !v) return;
+
+          const last = VIZ1_WALKTHROUGH_STEPS.length - 1;
+
+          if (viz1TourStep === last) {
+            viz1TourStep = -1;
+            v.checked = true;
+            c.checked = true;
+            enforceViz1LayerCheckboxes();
+            updateViz1StoryCaption();
+            syncViz1WalkthroughButton();
+            redrawViz1();
+            return;
+          }
+
+          if (viz1TourStep < 0) viz1TourStep = 0;
+          else viz1TourStep += 1;
+
+          const step = VIZ1_WALKTHROUGH_STEPS[viz1TourStep];
+          v.checked = step.vacc;
+          c.checked = step.cases;
+          enforceViz1LayerCheckboxes();
+          cap.innerHTML = step.html;
+          syncViz1WalkthroughButton();
+          renderOutbreakTimeline({
+            mount: tippingMount,
+            country: countrySelect.value,
+            rows: measlesRecent,
+            threshold: 95,
+            layers: readViz1LayersFromDom(),
+          });
+        });
+        syncViz1WalkthroughButton();
+      }
+
+      redrawViz1();
+    } else {
+      updateViz1StoryCaption();
+      renderOutbreakTimeline({
+        mount: tippingMount,
+        country: initialCountry,
+        rows: measlesRecent,
+        threshold: 95,
+        layers: readViz1LayersFromDom(),
       });
     }
-    renderOutbreakTimeline({ mount: tippingMount, country: initialCountry, rows: measlesRecent, threshold: 95 });
   };
 
   try {

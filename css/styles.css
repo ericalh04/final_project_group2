@@ -69,6 +69,19 @@ a:hover {
   font-size: 0.86rem;
 }
 
+.viz1-story-bar {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  background: rgba(248, 250, 252, 0.65);
+}
+
+.viz1-story-caption {
+  margin-bottom: 0;
+  text-align: left;
+  line-height: 1.55;
+}
+
 .legend-item {
   display: inline-flex;
   align-items: center;
@@ -87,16 +100,34 @@ a:hover {
   border: 1px solid rgba(15, 23, 42, 0.15);
 }
 
-.legend-coverage {
+.legend-line-split {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.legend-line-split .legend-line {
+  width: 12px;
+}
+
+.legend-coverage-below {
   border-top-color: var(--teal);
 }
 
+.legend-coverage-above {
+  border-top-color: #34d399;
+}
+
 .legend-cases {
-  background: rgba(255, 65, 54, 0.32);
+  background: rgba(234, 88, 12, 0.44);
+}
+
+.legend-safe {
+  background: rgba(52, 211, 153, 0.2);
 }
 
 .legend-danger {
-  background: rgba(255, 65, 54, 0.18);
+  background: rgba(124, 58, 237, 0.22);
 }
 
 .legend-threshold,
@@ -311,4 +342,46 @@ details[open]::details-content {
   transform: translateY(-2px);
 
   box-shadow: 0 12px 28px rgba(123, 111, 110, 0.32);
+}
+
+/* Measles vis: title (h4) and running total share one type scale (matches outcome line) */
+#measles-spread-title.story-title,
+#measles-spread-sub.story-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+/* Measles vis: flash infected counts in outcome title and running total */
+#measles-spread-title .measles-outcome-count,
+#measles-spread-sub .measles-outcome-count {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes measles-outcome-count-flash {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    color: inherit;
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.18);
+    color: #e24b4a;
+  }
+  70% {
+    opacity: 0.35;
+    transform: scale(1.05);
+    color: #e24b4a;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    color: inherit;
+  }
+}
+
+#measles-spread-title .measles-outcome-count--flash,
+#measles-spread-sub .measles-outcome-count--flash {
+  animation: measles-outcome-count-flash 0.85s ease-out;
 }
