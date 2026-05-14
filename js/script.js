@@ -358,7 +358,7 @@ function updateViz1StoryCaption() {
   const vOn = document.querySelector("#viz1-layer-vacc")?.checked;
   if (cOn && vOn) {
     el.innerHTML =
-      "<b>Full view.</b> MCV1 coverage (left axis, 0–100%): the line is <strong>green</strong> when coverage is at or above the herd immunity threshold and <strong>teal</strong> when it is below. Dashed line: 95% target for measles. <strong>Light green</strong> fill sits between the curve and that line when coverage is at or above 95%; <strong>violet</strong> fill does the same when it is under 95%. <strong>Orange</strong> area: reported cases (log scale, right axis). Use the toggles or press <strong>Start</strong> for a guided tour.";
+      "<b>Full view.</b> MCV1 coverage (left axis, 0-100%): the line is <strong>green</strong> when coverage is at or above the herd immunity threshold and <strong>teal</strong> when it is below. Dashed line: 95% target for measles. <strong>Light green</strong> fill sits between the curve and that line when coverage is at or above 95%; <strong>violet</strong> fill does the same when it is under 95%. <strong>Orange</strong> area: reported cases (log scale, right axis). Use the toggles or <strong>press \"Start\"</strong> for a guided tour.";
   } else if (vOn && !cOn) {
     el.innerHTML =
       "<b>Vaccination only.</b> The left axis shows MCV1 (first-dose measles) coverage as a line: <strong>green</strong> when it is at or above the ~<strong>95%</strong> target for measles herd immunity, <strong>teal</strong> when it is lower. The dashed horizontal line is that 95% target. <strong>Light green</strong> fill appears between the curve and the line when coverage meets or beats the target; <strong>violet</strong> fill appears when it falls short. Turn on <strong>Measles cases</strong> to add reported counts on the same timeline.";
@@ -375,17 +375,17 @@ const VIZ1_WALKTHROUGH_STEPS = [
   {
     vacc: true,
     cases: false,
-    html: "<b>Step 1 of 3 — Vaccination only.</b> MCV1 on the left axis: <strong>green</strong> line at or above ~95%, <strong>teal</strong> below. <strong>Light green</strong> fill between curve and dashed line when coverage is on target; <strong>violet</strong> when it is under. Press <strong>Next</strong> for the cases layer.",
+    html: "<b>Step 1 of 3: Vaccination only.</b> MCV1 on the left axis: <strong>green</strong> line at or above ~95%, <strong>teal</strong> below. <strong>Light green</strong> fill between curve and dashed line when coverage is on target; <strong>violet</strong> when it is under. Press <strong>Next</strong> for the cases layer.",
   },
   {
     vacc: false,
     cases: true,
-    html: "<b>Step 2 of 3 — Cases only.</b> Only reported measles cases are shown: one solid orange fill on a <strong>logarithmic</strong> scale (right axis). Press <strong>Next</strong> to turn both layers on and compare.",
+    html: "<b>Step 2 of 3: Cases only.</b> Only reported measles cases are shown: one solid orange fill on a <strong>logarithmic</strong> scale (right axis). Press <strong>Next</strong> to turn both layers on and compare.",
   },
   {
     vacc: true,
     cases: true,
-    html: "<b>Step 3 of 3 — Both layers.</b> <strong>Light green</strong> / <strong>violet</strong> bands show on- vs under-target vaccination; <strong>orange</strong> shows reported cases. Large surges often follow dips under the threshold (reporting and other factors matter too). Press <strong>Done</strong> to exit the tour.",
+    html: "<b>Step 3 of 3: Both layers.</b> <strong>Light green</strong> / <strong>violet</strong> bands show on- vs under-target vaccination; <strong>orange</strong> shows reported cases. Large surges often follow dips under the threshold (reporting and other factors matter too). Press <strong>Done</strong> to exit the tour.",
   },
 ];
 
