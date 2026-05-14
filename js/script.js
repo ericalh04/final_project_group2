@@ -14,38 +14,6 @@
  * NOTE: This script expects you to place CSVs into /data. See DATA_FILES below for filenames.
  */
 
-// -----------------------------
-// Disclosure widget -- adapted from https://linkedlist.ch/animate_details_element_60/
-// -----------------------------
-document.querySelectorAll('summary')
-  .forEach(element => element.addEventListener('click', (event) => {
-    const detailsElement = event.target.parentElement
-    const contentElement = event.target.nextElementSibling
-
-    // addresses Chrome bug
-    if (contentElement.classList.contains('animation')) {
-      contentElement.classList.remove('animation', 'collapsing')
-      void element.offsetWidth
-      return
-    }
-
-    const onAnimationEnd = cb => contentElement.addEventListener('animationend', cb, {once: true})
-
-    // forces Safari to perform the animation
-    requestAnimationFrame(() => contentElement.classList.add('animation'))
-    onAnimationEnd(() => contentElement.classList.remove('animation'))
-
-    const isDetailsOpen = detailsElement.getAttribute('open') !== null
-    if (isDetailsOpen) {
-      event.preventDefault()
-      contentElement.classList.add('collapsing')
-      onAnimationEnd(() => {
-        detailsElement.removeAttribute('open')
-        contentElement.classList.remove('collapsing')
-      })
-    }
-  }))
-
 const tooltipEl = document.querySelector("#tooltip");
 const tippingMount = document.querySelector("#vis-tipping");
 const heatmapMount = document.querySelector("#vis-heatmap");

@@ -28,7 +28,6 @@
       <div class="container py-5">
         <h1 class="display-5 mb-2 hero-title">Visualizing Viruses* and Their Vaccines</h1>
         <p class="lead hero-subtitle mb-0">GROUP 2: Zoey Tsai, Maxine Hsu, Erica Honadel</p>
-        <!-- <p class="hero-subtitle mb-0">Group 2</p> -->
         <small class="hero-subtitle">
           <i>*We understand that diphtheria/pertussis are caused by bacteria; however, for the 
           sake of alliteration, we have decided to maintain the current title.</i>
@@ -48,8 +47,11 @@
           consumption of contaminated food or water, contact with bodily fluids, or a vector
           (intermediary) like mosquitoes and ticks. In this visualization, we will explore infectious
           diseases caused by viruses (and bacteria). Some of the worst viral (and bacterial) diseases are
-          <b><u>measles</u></b>, <b><u>diphtheria</u></b>, <b><u>pertussis</u></b> (also called
-          <b><u>whooping cough</u></b>), and <b><u>polio</u></b>, all of which we will explore in the data below.
+          <b><a href="https://www.mayoclinic.org/diseases-conditions/measles/symptoms-causes/syc-20374857" target="_blank">measles</a></b>,
+          <b><a href="https://www.mayoclinic.org/diseases-conditions/diphtheria/symptoms-causes/syc-20351897" target="_blank">diphtheria</a></b>,
+          <b><u>pertussis</u></b> (also called <b><a href="https://www.mayoclinic.org/diseases-conditions/whooping-cough/symptoms-causes/syc-20378973" target="_blank">whooping cough</a></b>),
+          and <b><a href="https://www.mayoclinic.org/diseases-conditions/polio/symptoms-causes/syc-20376512" target="_blank">polio</a></b>,
+          all of which we will explore in the data below.
         </p>
 
         <h4 class="story-title">What are vaccines?</h4>
@@ -80,8 +82,6 @@
             <li><b>Ebola</b>: <u>2 people</u> will be infected on average<sup>3</sup></li>
           </ul>
         </p>
-        <!-- I will make the disease spread visualization here later -->
-
         <div id="vis-measles-spread">
           <h4 id="measles-spread-title" class="story-title">
             Example: John gets infected with measles
@@ -91,6 +91,7 @@
           <svg id="measles-spread-svg" ...></svg>
           <p class="visually-hidden">People infected: <strong id="measles-spread-count">1</strong></p>
         </div>
+
         <h4 class="story-title">What is herd immunity?</h4>
         <p class="story-text">
           <b>Herd immunity</b> is when the <b>population has enough immunity to a disease
@@ -111,9 +112,19 @@
         <h2 class="story-title">Outbreak Timeline</h2>
         <p class="story-text">
           This view compares <mark>measles vaccination coverage (MCV1)</mark> against <mark>reported case counts</mark> for a selected country over
-          time. Use the <b>layer toggles</b> below the chart to show vaccination, cases, or both together. Press <b>Start</b> for a guided tour: use <b>Next</b> to advance through each layer view, then <b>Done</b> to finish.
-          Use the <b>country dropdown</b> to switch locations, then <b>drag the brush at the bottom</b> to zoom into a specific date
-          range. <b>Hover anywhere in the chart</b> to inspect the nearest year: the <b>tooltip</b> and <b>highlight markers</b> show values for the layers you have turned on.
+          time.
+          <ul>
+            <li>Use the <b>country dropdown</b> to switch locations.</li>
+            <li><b>Drag the brush at the bottom</b> to zoom into a specific date range.</li>
+            <li><b>Hover anywhere in the chart</b> to inspect the nearest year:
+              the <b>tooltip</b> and <b>highlight markers</b> show the
+                <ul>
+                  <li>exact coverage level,</li>
+                  <li>case count, and</li>
+                  <li>whether that year is above or below the herd immunity threshold.</li>
+                </ul>
+            </li>
+          </ul>
         </p>
         <details>
           <summary>Click to see how data is represented on the graph</summary>
@@ -220,8 +231,10 @@
 
     <!-- D3 v7 -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
     <!-- TopoJSON (UMD build exposes global `topojson`) -->
     <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+
     <script src="js/measles_spread.js"></script>
     <script src="js/script.js"></script>
 
