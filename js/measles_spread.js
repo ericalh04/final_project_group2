@@ -59,6 +59,7 @@ const MEASLES_SPREAD = Object.freeze({
     svg: "#measles-spread-svg",
     title: "#measles-spread-title",
     sub: "#measles-spread-sub",
+    sub2: "#measles-spread-sub2",
     btn: "#measles-spread-btn",
     count: "#measles-spread-count",
   }),
@@ -246,10 +247,11 @@ function measlesSpreadVis() {
   const svgEl = document.querySelector(sel.svg);
   const titleEl = document.querySelector(sel.title);
   const subEl = document.querySelector(sel.sub);
+  const subEl2 = document.querySelector(sel.sub2);
   const btnEl = document.querySelector(sel.btn);
   const countEl = document.querySelector(sel.count);
 
-  if (!svgEl || !titleEl || !subEl || !btnEl || !countEl) {
+  if (!svgEl || !titleEl || !subEl || !subEl2 || !btnEl || !countEl) {
     console.warn("measlesSpreadVis: required DOM nodes missing; skipping init.");
     return;
   }
@@ -406,6 +408,8 @@ function measlesSpreadVis() {
   function showOutcomeTitleFlashing(total) {
     flashCountInElement(titleEl, "Outcome: ", total);
     titleEl.append(" people infected");
+    subEl2.textContent =
+      "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
   }
 
   /** End animation and show summary copy. */
@@ -414,8 +418,6 @@ function measlesSpreadVis() {
     phase = "done";
     btnEl.textContent = "Reset";
     showOutcomeTitleFlashing(totalInfected);
-    subEl.textContent =
-      "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
   }
 
   /** One wave: branch from current carriers, fill clustered free slots, schedule next. */
@@ -450,7 +452,8 @@ function measlesSpreadVis() {
     const timeToNextWave = Math.max(t.waveIntervalMs, waveAppearDurationMs);
 
     countEl.textContent = String(totalInfected);
-    titleEl.textContent = `Generation ${waveIndex}: ${slots.length} more people infected`;
+    flashCountInElement(titleEl, `Generation ${waveIndex}: `, slots.length);
+    titleEl.append(" newly infected");
     flashCountInElement(subEl, "Total infected so far: ", totalInfected);
 
     if (waveIndex >= cfg.maxWaves) {
@@ -464,9 +467,6 @@ function measlesSpreadVis() {
     if (phase === "initial") {
       phase = "spreading";
       btnEl.textContent = "Stop";
-      titleEl.textContent =
-        "Measles spreads to 12–18 people per infected person…";
-      subEl.textContent = "Each wave represents one generation of new infections.";
       d3.select("#john-label").transition().duration(300).style("opacity", 0);
       runWave();
     } else if (phase === "spreading") {
@@ -474,12 +474,19 @@ function measlesSpreadVis() {
     } else {
       phase = "initial";
       btnEl.textContent = "Watch what happens next →";
-      titleEl.textContent = "John gets infected with measles";
+      titleEl.textContent = "Example: John gets infected with measles...";
       subEl.textContent =
-        "See how quickly measles — one of the most contagious diseases - spreads.";
+        "See how quickly measles — one of the most contagious diseases - spreads through a population without immunity";
+      subEl2.textContent = "Each wave represents one generation of new infections.";
       resetToInitial();
     }
   });
+
+  // Set initial text state
+  titleEl.textContent = "Example: John gets infected with measles...";
+  subEl.textContent =
+    "See how quickly measles — one of the most contagious diseases - spreads through a community without immunity.";
+  subEl2.textContent = "Each wave represents one generation of new infections.";
 
   resetToInitial();
 }
