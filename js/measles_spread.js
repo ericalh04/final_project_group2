@@ -409,7 +409,7 @@ function measlesSpreadVis() {
     flashCountInElement(titleEl, "Outcome: ", total);
     titleEl.append(" infected");
     subEl2.textContent =
-      "Measles spreads to 12–18 people per infected person — 6× more contagious than COVID-19.";
+      "Measles spreads to 12-18 people per infected person—6 times more contagious than COVID-19.";
   }
 
   /** End animation and show summary copy. */
@@ -476,7 +476,7 @@ function measlesSpreadVis() {
       btnEl.textContent = "Watch what happens next →";
       titleEl.textContent = "Example: John gets infected with measles...";
       subEl.textContent =
-        "See how quickly measles — one of the most contagious diseases - spreads through a population without immunity";
+        "See how quickly measles spreads through a community without immunity.";
       subEl2.textContent = "Each wave represents one generation of new infections.";
       resetToInitial();
     }
@@ -485,7 +485,7 @@ function measlesSpreadVis() {
   // Set initial text state
   titleEl.textContent = "Example: John gets infected with measles...";
   subEl.textContent =
-    "See how quickly measles — one of the most contagious diseases - spreads through a community without immunity.";
+    "See how quickly measles spreads through a community without immunity.";
   subEl2.textContent = "Each wave represents one generation of new infections.";
 
   resetToInitial();
@@ -840,7 +840,7 @@ function measlesVaccinatedVis() {
       phase = "revealing";
       btnEl.disabled = true;
       btnEl.textContent = "Revealing population…";
-      titleEl.textContent = "95% of the community is vaccinated (teal) — only 5% are susceptible (grey)";
+      titleEl.textContent = "95% of the community is vaccinated (teal)—only 5% are susceptible (grey)";
       subEl.textContent = "";
       if (subEl2) subEl2.textContent = "";
 

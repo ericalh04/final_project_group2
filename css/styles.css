@@ -23,6 +23,10 @@ body {
   text-underline-offset: 24%;
 }
 
+a {
+  text-decoration: none;
+}
+
 a:link {
   color: #ff4136;
 }

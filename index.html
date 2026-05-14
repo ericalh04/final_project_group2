@@ -41,15 +41,15 @@
  
         <h4 class="story-title">What is disease?</h4>
         <p class="story-text">
-          <mark><b>Disease</b></mark> is <b>any harm that is caused to an individual</b>—in this case,
-          humans. <mark><b>Infectious diseases</b></mark> are <b>diseases that can be transmitted
-          from one person to another</b>, through coughing, sneezing, physical contact,
+          <mark><b>Disease</b></mark> is <b><u>any harm that is caused to an individual</u></b>—in this case,
+          humans. <mark><b>Infectious diseases</b></mark> are <b><u>diseases that can be transmitted
+          from one person to another</u></b>, through coughing, sneezing, physical contact,
           consumption of contaminated food or water, contact with bodily fluids, or a vector
           (intermediary) like mosquitoes and ticks. In this visualization, we will explore infectious
           diseases caused by viruses (and bacteria). Some of the worst viral (and bacterial) diseases are
           <b><a href="https://www.mayoclinic.org/diseases-conditions/measles/symptoms-causes/syc-20374857" target="_blank">measles</a></b>,
           <b><a href="https://www.mayoclinic.org/diseases-conditions/diphtheria/symptoms-causes/syc-20351897" target="_blank">diphtheria</a></b>,
-          <b><u>pertussis</u></b> (also called <b><a href="https://www.mayoclinic.org/diseases-conditions/whooping-cough/symptoms-causes/syc-20378973" target="_blank">whooping cough</a></b>),
+          <b>pertussis</b> (also called <b><a href="https://www.mayoclinic.org/diseases-conditions/whooping-cough/symptoms-causes/syc-20378973" target="_blank">whooping cough</a></b>),
           and <b><a href="https://www.mayoclinic.org/diseases-conditions/polio/symptoms-causes/syc-20376512" target="_blank">polio</a></b>,
           all of which we will explore in the data below.
         </p>
@@ -57,30 +57,36 @@
         <h4 class="story-title">What are vaccines?</h4>
         <p class="story-text">
           <mark><b>Vaccines</b></mark> are treatments that give a weakened form of the virus
-          to a person's immune system, which <b>teaches their immune system how to fight off the virus</b>
+          to a person's immune system, which <b><u>teaches their immune system how to fight off the virus</u></b>
           in case they get the normal (strong) version of the virus in the future. Vaccines are basically
           a "practice battle" to prepare against the "real battle" that may or may not happen.
-          Vaccines improve herd immunity and <b>can be highly effective</b> 
-          in reducing the spread of infectious diseases; in fact, the measles vaccine is estimated
+          Vaccines improve <a href="#herd-immunity">herd immunity</a> and <b>can be highly effective</b> 
+          in reducing the spread of infectious diseases and lowering the risk of death; in fact, the measles vaccine is estimated
           to have <b>saved 93.71 million lives</b> since it was first introduced<sup>1</sup>.
         </p>
-        <p class="story-text">
-          Here is a basic history of vaccines:
-        </p>
-        <!-- I will make the timeline visualization here later -->
+        <details>
+          <summary>If you're interested...</summary>
+          <div>
+            <div>
+              <p class="story-text">
+                <a href="https://www.who.int/news-room/spotlight/history-of-vaccination/a-brief-history-of-vaccination" target="_blank">Here's a brief history of vaccines.</a>
+              </p>
+            </div>
+          </div>
+        </details>
  
         <h4 class="story-title">Why is measles so bad?</h4>
         <p class="story-text">
-          <mark><b>Measles</b></mark> is the <b>most infectious human disease on Earth</b>.
+          <mark><b>Measles</b></mark> is the <b><u>most infectious human disease on Earth</u></b>.
           This is because, <mark>for each person that is infected with measles, an average of 12-18 people
           will be infected</mark> by that one person<sup>2</sup>.
           <br><br>
  
           For comparison, for each person infected with...
           <ul class="story-text">
-            <li><b>COVID-19</b>: <u>2-3 people</u> will be infected on average<sup>3</sup></li>
-            <li><b>Influenza</b>: <u>1-2 people</u> will be infected on average<sup>4</sup></li>
-            <li><b>Ebola</b>: <u>2 people</u> will be infected on average<sup>3</sup></li>
+            <li><b>COVID-19</b>: <u>2-3 people</u> will be infected on average<sup>3</sup>.</li>
+            <li><b>Influenza</b>: <u>1-2 people</u> will be infected on average<sup>4</sup>.</li>
+            <li><b>Ebola</b>: <u>2 people</u> will be infected on average<sup>3</sup>.</li>
           </ul>
         </p>
         <div id="vis-measles-spread">
@@ -109,8 +115,7 @@
         </div>
 
         <p class="story-text">
-          <br><br>In just a few generations, the measles outbreak spread throughout
-          John's community. 
+          <br><br>In just a few generations, measles spreads to every person in John's community. 
           <br>
         </p>        
 
@@ -142,28 +147,29 @@
           <p class="visually-hidden">People infected: <strong id="vacc-spread-count">1</strong></p>
         </div>
         <br>
-        <h4 class="story-title">What is herd immunity?</h4>
+        <h4 id="herd-immunity" class="story-title">What is herd immunity?</h4>
         <p class="story-text">
-          <b>Herd immunity</b> is when the <b>population has enough immunity to a disease
-          that the risk of disease spread is low</b>. Herd immunity can be acquired through vaccination
+          <mark><b>Herd immunity</b></mark> is when the <b><u>population has enough immunity to a disease
+          that the risk of disease spread is low</u></b>. Herd immunity can be acquired through vaccination
           or through enough people getting sick with the disease and successfully fighting it off, granting
-          them natural immunity (which is similar to what vaccines provide). The <b>herd immunity threshold</b>
-          is the point where, if the percentage of people vaccinated drops below it, <b>herd immunity weakens</b>
-          and <b>the risk of a disease outbreak rises</b>.
+          them natural immunity (which is similar to what vaccines provide).
           <br><br>
- 
+          
+          The <mark><b>herd immunity threshold</b></mark>
+          is the point where, if the percentage of people vaccinated drops below it, <b><u>herd immunity weakens</u></b>
+          and <b><u>the risk of a disease outbreak rises</u></b>.
           Each disease has a different herd immunity threshold, depending on their infectivity. Measles has a
-          <mark>very high herd immunity threshold of 95%</mark>, meaning that <mark>at least 95% of the population should be
-          vaccinated against it</mark> to prevent an outbreak</mark>.
+          <b>very high herd immunity threshold of 95%</b>, meaning that <mark>at least 95% of the population should be
+          vaccinated against it</mark> to prevent an outbreak.
         </p>
       </section>
  
       <section class="story-section">
         <h2 class="story-title">Outbreak Timeline</h2>
         <p class="story-text">
-          This view compares <mark>measles vaccination coverage (MCV1)</mark> against <mark>reported case counts</mark> for a selected country over
+          This view compares <u>measles vaccination coverage (MCV1)</u> against <u>reported case counts</u> for a selected country over
           time.
-          <ul>
+          <ul class="story-text">
             <li>Use the <b>country dropdown</b> to switch locations.</li>
             <li><b>Drag the brush at the bottom</b> to zoom into a specific date range.</li>
             <li><b>Hover anywhere in the chart</b> to inspect the nearest year:
@@ -225,10 +231,20 @@
       <section class="story-section">
         <h2 class="story-title">Global Outbreak Map</h2>
         <p class="story-text">
-          This map combines two signals for the selected disease and year: <b>country color</b> encodes <mark>vaccination coverage</mark>, while
-          <b>bubble size</b> encodes <mark>reported case counts</mark>. Use the <b>disease dropdown</b> to switch between <u>measles</u>, <u>diphtheria/pertussis</u>,
-          and <u>polio</u>, then <b>move the year slider</b> (or <b>press "Play"</b>) to animate how risk changes over time. <b>Hover over a country or bubble</b>
-          to highlight it, inspect exact values in the <b>tooltip</b>, and compare how local coverage and outbreak burden shift across regions.
+          This map combines two signals for the selected disease and year:
+          <ul class="story-text">
+            <li><b>country color</b> encodes <u>vaccination coverage</u>, while</li>
+            <li><b>bubble size</b> encodes <u>reported case counts</u>.</li>
+          </ul>
+        </p>
+        <p class="story-text">
+          Compare local coverage and outbreak burden shift across regions:
+          <ul class="story-text">
+            <li>Use the <b>disease dropdown</b> to switch between <u>measles</u>, <u>diphtheria/pertussis</u>, and <u>polio</u>.</li>
+            <li><b>Move the year slider</b> (or <b>press "Play"</b>) to animate how risk changes over time.</li>
+            <li><b>Hover over a country or bubble</b> to highlight it.</li>
+            <li>Inspect exact values in the <b>tooltip</b>.</li>
+          </ul>
         </p>
         <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
           <label class="form-label mb-0 me-1" for="mapDisease">Disease</label>
